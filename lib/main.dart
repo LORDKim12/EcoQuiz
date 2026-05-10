@@ -14,8 +14,29 @@ class EcoQuizApp extends StatelessWidget {
     return MaterialApp(
       title: 'EcoQuiz',
       theme: AppTheme.lightTheme,
-      home: const HomeScreen(),
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 450),
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                )
+              ],
+            ),
+            child: ClipRRect(
+              // Si se desea esquinas redondeadas en web
+              // borderRadius: BorderRadius.circular(0),
+              child: child,
+            ),
+          ),
+        );
+      },
+      home: const HomeScreen(),
     );
   }
 }
