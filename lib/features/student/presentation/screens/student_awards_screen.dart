@@ -96,7 +96,7 @@ class StudentAwardsScreen extends StatelessWidget {
                   crossAxisCount: 2,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: 0.7,
+                  childAspectRatio: 0.55,
                   children: [
                     _buildRewardCard(
                       context,
@@ -184,7 +184,7 @@ class StudentAwardsScreen extends StatelessWidget {
           
           // Details
           Expanded(
-            flex: 4,
+            flex: 5,
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(

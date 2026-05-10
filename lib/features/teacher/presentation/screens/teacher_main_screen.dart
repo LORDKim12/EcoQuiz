@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import 'student_map_screen.dart';
-import 'student_journal_screen.dart';
-import 'student_profile_screen.dart';
-import 'student_awards_screen.dart';
+import 'teacher_profile_screen.dart';
+// Note: For now, reusing student screens for Map, Journal, Awards to demonstrate shell
+import '../../../student/presentation/screens/student_map_screen.dart';
+import '../../../student/presentation/screens/student_journal_screen.dart';
+import '../../../student/presentation/screens/student_awards_screen.dart';
 
-class StudentMainScreen extends StatefulWidget {
-  const StudentMainScreen({super.key});
+class TeacherMainScreen extends StatefulWidget {
+  const TeacherMainScreen({super.key});
 
   @override
-  State<StudentMainScreen> createState() => _StudentMainScreenState();
+  State<TeacherMainScreen> createState() => _TeacherMainScreenState();
 }
 
-class _StudentMainScreenState extends State<StudentMainScreen> {
-  int _currentIndex = 0;
+class _TeacherMainScreenState extends State<TeacherMainScreen> {
+  int _currentIndex = 3; // Start on Profile/Dashboard
 
+  // In a real app, Map, Journal, and Awards might be slightly different for teachers
+  // but we reuse the student ones here as placeholders to complete the shell.
   final List<Widget> _screens = [
     const StudentMapScreen(),
     const StudentJournalScreen(),
     const StudentAwardsScreen(),
-    const StudentProfileScreen(),
+    const TeacherProfileScreen(),
   ];
 
   @override
@@ -64,32 +67,32 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.studentPrimary.withOpacity(0.3) : Colors.transparent,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? AppColors.studentBorder : Colors.grey.shade500,
-              size: 28,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.studentPrimary.withOpacity(0.3) : Colors.transparent,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
                 color: isSelected ? AppColors.studentBorder : Colors.grey.shade500,
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                size: 28,
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected ? AppColors.studentBorder : Colors.grey.shade500,
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

@@ -130,7 +130,7 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: 0.65, // Adjust card height/width ratio
+                  childAspectRatio: 0.55, // Adjusted to prevent overflow on small screens
                   children: _showAnimals ? _buildAnimalCards() : _buildPlantCards(),
                 ),
               ),

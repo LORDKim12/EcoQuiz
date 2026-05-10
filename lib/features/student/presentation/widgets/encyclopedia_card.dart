@@ -94,9 +94,9 @@ class EncyclopediaCard extends StatelessWidget {
           
           // Info Section
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+              padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -107,7 +107,7 @@ class EncyclopediaCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: AppColors.textBrown,
                           fontWeight: FontWeight.w900,
-                          fontSize: 20, // Slightly smaller to fit better
+                          fontSize: 16, // Reduced from 20
                         ),
                   ),
                   const SizedBox(height: 2),
@@ -118,13 +118,13 @@ class EncyclopediaCard extends StatelessWidget {
                     style: TextStyle(
                       fontStyle: FontStyle.italic,
                       color: Colors.grey.shade600,
-                      fontSize: 13,
+                      fontSize: 11, // Reduced from 13
                     ),
                   ),
                   const Spacer(),
                   // Tags Row
                   Wrap(
-                    spacing: 8,
+                    spacing: 4,
                     runSpacing: 4,
                     children: tags,
                   ),
@@ -167,7 +167,7 @@ class LockedEncyclopediaCard extends StatelessWidget {
               Text(
                 '?',
                 style: TextStyle(
-                  fontSize: 80,
+                  fontSize: 60, // Reduced from 80
                   fontWeight: FontWeight.w900,
                   color: Colors.green.shade200.withOpacity(0.5),
                 ),
@@ -176,7 +176,7 @@ class LockedEncyclopediaCard extends StatelessWidget {
               const Text(
                 '???',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 20, // Reduced from 24
                   fontWeight: FontWeight.bold,
                   color: Colors.grey,
                 ),
@@ -249,9 +249,11 @@ class CardTag extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: textColor,
-          fontSize: 10,
+          fontSize: 9, // Reduced from 10
           fontWeight: FontWeight.bold,
         ),
       ),

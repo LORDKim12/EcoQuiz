@@ -43,9 +43,10 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 32),
@@ -95,7 +96,7 @@ class HomeScreen extends StatelessWidget {
                 },
               ),
               
-              const Spacer(),
+              const SizedBox(height: 32),
               // Ajolote mascot image
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
@@ -126,6 +127,7 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 32),
             ],
           ),
+        ),
         ),
       ),
     );

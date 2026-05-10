@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../home/presentation/screens/home_screen.dart';
 
 class StudentProfileScreen extends StatelessWidget {
   const StudentProfileScreen({super.key});
@@ -77,6 +78,33 @@ class StudentProfileScreen extends StatelessWidget {
                 progressColor: const Color(0xFFE74C3C), // Red
                 avatarColor: Colors.red.shade200,
                 isCurrentUser: false,
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // Botón de Cerrar Sesión
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (context) => const HomeScreen()),
+                      (route) => false,
+                    );
+                  },
+                  icon: const Icon(Icons.logout, color: Colors.red),
+                  label: const Text(
+                    'Cerrar Sesión',
+                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: const BorderSide(color: Colors.red, width: 2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                ),
               ),
               
               const SizedBox(height: 32),

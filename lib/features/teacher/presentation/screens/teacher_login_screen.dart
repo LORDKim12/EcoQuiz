@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'teacher_main_screen.dart';
 
 class TeacherLoginScreen extends StatefulWidget {
   const TeacherLoginScreen({super.key});
@@ -54,12 +55,12 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
                     borderRadius: BorderRadius.circular(16),
                     child: Image.asset(
                       'assets/images/axolotl_teacher.png',
-                      height: 250,
+                      height: 180,
                       width: double.infinity,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          height: 250,
+                          height: 180,
                           width: double.infinity,
                           decoration: BoxDecoration(
                             color: const Color(0xFF2C3E50),
@@ -134,7 +135,12 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () {
-                              // Navigate to Teacher Dashboard
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const TeacherMainScreen(),
+                                ),
+                              );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.teacherBorder, // Dark blue

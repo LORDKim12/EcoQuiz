@@ -57,12 +57,12 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                     borderRadius: BorderRadius.circular(16),
                     child: Image.asset(
                       'assets/images/axolotl_wooden_sign.png',
-                      height: 250,
+                      height: 180,
                       width: double.infinity,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          height: 250,
+                          height: 180,
                           width: double.infinity,
                           decoration: BoxDecoration(
                             color: const Color(0xFF2B3A4A),
