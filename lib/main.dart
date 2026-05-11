@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 
-void main() {
+import 'features/student/domain/models/game_state.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await GameState.instance.init();
   runApp(const EcoQuizApp());
 }
 

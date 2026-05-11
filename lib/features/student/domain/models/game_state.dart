@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EncyclopediaCardData {
   final int id;
@@ -24,13 +26,64 @@ class GameState {
   static final GameState instance = GameState._internal();
   GameState._internal();
 
-  // Initially only the Ajolote (0) and Jaguar (4) are unlocked for testing.
   final ValueNotifier<List<int>> unlockedCards = ValueNotifier<List<int>>([0, 4]);
+  
+  final ValueNotifier<List<bool>> unlockedLevels = ValueNotifier<List<bool>>([
+    true, false, false, false, false, false,
+  ]);
+
+  final ValueNotifier<int> hearts = ValueNotifier<int>(5);
+
+  SharedPreferences? _prefs;
+
+  // Cargar datos guardados
+  Future<void> init() async {
+    _prefs = await SharedPreferences.getInstance();
+    
+    // Cargar tarjetas
+    final String? cardsJson = _prefs?.getString('unlocked_cards');
+    if (cardsJson != null) {
+      unlockedCards.value = List<int>.from(jsonDecode(cardsJson));
+    }
+
+    // Cargar niveles
+    final String? levelsJson = _prefs?.getString('unlocked_levels');
+    if (levelsJson != null) {
+      unlockedLevels.value = List<bool>.from(jsonDecode(levelsJson));
+    }
+
+    // Cargar vidas
+    final int? savedHearts = _prefs?.getInt('hearts');
+    if (savedHearts != null) {
+      hearts.value = savedHearts;
+    }
+  }
+
+  void setLevelUnlocked(int index, bool isUnlocked) {
+    final newList = List<bool>.from(unlockedLevels.value);
+    newList[index] = isUnlocked;
+    unlockedLevels.value = newList;
+    _prefs?.setString('unlocked_levels', jsonEncode(newList));
+  }
 
   void unlockCard(int id) {
     if (!unlockedCards.value.contains(id)) {
-      unlockedCards.value = List.from(unlockedCards.value)..add(id);
+      final newList = List.from(unlockedCards.value)..add(id);
+      unlockedCards.value = List<int>.from(newList);
+      _prefs?.setString('unlocked_cards', jsonEncode(newList));
     }
+  }
+
+  void deductHeart() {
+    if (hearts.value > 0) {
+      hearts.value -= 1;
+      _prefs?.setInt('hearts', hearts.value);
+    }
+  }
+
+  void restoreHearts() {
+    hearts.value = 5;
+    _prefs?.setInt('hearts', hearts.value);
   }
 
   static const List<EncyclopediaCardData> allCards = [

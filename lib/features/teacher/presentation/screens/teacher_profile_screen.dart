@@ -76,20 +76,6 @@ class TeacherProfileScreen extends StatelessWidget {
               
               // Action Buttons
               _buildActionButton(
-                label: 'Gestionar Niveles',
-                icon: Icons.layers,
-                bgColor: const Color(0xFF117A2A),
-                textColor: Colors.white,
-                iconBgColor: Colors.white.withOpacity(0.2),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const TeacherLevelManagementScreen()),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildActionButton(
                 label: 'Ver Progreso',
                 icon: Icons.bar_chart,
                 bgColor: const Color(0xFFFFDAB9), // Peach color

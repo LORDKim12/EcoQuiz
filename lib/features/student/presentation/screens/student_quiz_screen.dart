@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../domain/models/quiz_model.dart';
+import '../../domain/models/game_state.dart';
 import 'student_quiz_result_screen.dart';
 import 'student_level_complete_screen.dart';
 
@@ -17,6 +18,7 @@ class StudentQuizScreen extends StatefulWidget {
 class _StudentQuizScreenState extends State<StudentQuizScreen> {
   int _currentIndex = 0;
   bool _showHint = false;
+  bool _wrongAnswerFlash = false;
 
   void _onOptionSelected(int index) {
     final currentQuestion = widget.questions[_currentIndex];
@@ -54,12 +56,30 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
         ),
       );
     } else {
-      // Wrong answer
+      // Wrong answer — deduct heart and flash red
+      GameState.instance.deductHeart();
+      setState(() => _wrongAnswerFlash = true);
+      
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) setState(() => _wrongAnswerFlash = false);
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Casi... intenta de nuevo'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 1),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.favorite, color: Color(0xFFE74C3C), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Incorrecto — ¡Perdiste un corazón! (${GameState.instance.hearts.value} ❤️ restantes)',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFFDE8E1),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       );
     }
@@ -89,9 +109,22 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: AppColors.textDark),
-            onPressed: () {},
+          // Hearts row inside AppBar actions
+          ValueListenableBuilder<int>(
+            valueListenable: GameState.instance.hearts,
+            builder: (context, h, _) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(5, (i) => Icon(
+                    i < h ? Icons.favorite : Icons.favorite_border,
+                    color: i < h ? const Color(0xFFE74C3C) : Colors.grey.shade300,
+                    size: 20,
+                  )),
+                ),
+              );
+            },
           ),
         ],
         bottom: PreferredSize(
@@ -110,140 +143,144 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
           ),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                // Top Image
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(32),
-                  child: Image.asset(
-                    currentQuestion.imageAssetPath,
-                    height: 350,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 350,
-                        width: double.infinity,
-                        color: Colors.grey.shade300,
-                        child: const Center(child: Icon(Icons.image, size: 50)),
-                      );
-                    },
-                  ),
-                ),
-                
-                // Card for Question and Options
-                Transform.translate(
-                  offset: const Offset(0, -20),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFDE8E1), // Light peach
-                      borderRadius: BorderRadius.circular(32),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          offset: const Offset(0, -10),
-                          blurRadius: 20,
-                        ),
-                      ],
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        color: _wrongAnswerFlash ? const Color(0xFFFFCDD2) : const Color(0xFFFDF8F5),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  // Top Image
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(32),
+                    child: Image.asset(
+                      currentQuestion.imageAssetPath,
+                      height: 350,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 350,
+                          width: double.infinity,
+                          color: Colors.grey.shade300,
+                          child: const Center(child: Icon(Icons.image, size: 50)),
+                        );
+                      },
                     ),
-                    child: Column(
-                      children: [
-                        Text(
-                          currentQuestion.questionText,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.textBrown,
-                            height: 1.2,
+                  ),
+                  
+                  // Card for Question and Options
+                  Transform.translate(
+                    offset: const Offset(0, -20),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFDE8E1), // Light peach
+                        borderRadius: BorderRadius.circular(32),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            offset: const Offset(0, -10),
+                            blurRadius: 20,
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        // Option Buttons
-                        _buildOptionButton(
-                          text: currentQuestion.options[0],
-                          color: const Color(0xFF4CAF50), // Green
-                          onTap: () => _onOptionSelected(0),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildOptionButton(
-                          text: currentQuestion.options[1],
-                          color: const Color(0xFF2196F3), // Blue
-                          onTap: () => _onOptionSelected(1),
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        // Last option with Mascot hint stack
-                        Stack(
-                          clipBehavior: Clip.none,
-                          alignment: Alignment.centerRight,
-                          children: [
-                            _buildOptionButton(
-                              text: currentQuestion.options[2],
-                              color: const Color(0xFFFF9800), // Orange
-                              onTap: () => _onOptionSelected(2),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            currentQuestion.questionText,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.textBrown,
+                              height: 1.2,
                             ),
-                            
-                            // Mascot hint button
-                            Positioned(
-                              right: -10,
-                              bottom: -10,
-                              child: GestureDetector(
-                                onTap: () => setState(() => _showHint = !_showHint),
-                                child: Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.black, width: 2),
-                                    boxShadow: const [
-                                      BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
-                                    ],
-                                    image: const DecorationImage(
-                                      image: AssetImage('assets/images/eco_ajolote_mascot.png'),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          // Option Buttons
+                          _buildOptionButton(
+                            text: currentQuestion.options[0],
+                            color: const Color(0xFF4CAF50), // Green
+                            onTap: () => _onOptionSelected(0),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildOptionButton(
+                            text: currentQuestion.options[1],
+                            color: const Color(0xFF2196F3), // Blue
+                            onTap: () => _onOptionSelected(1),
+                          ),
+                          const SizedBox(height: 12),
+                          
+                          // Last option with Mascot hint stack
+                          Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.centerRight,
+                            children: [
+                              _buildOptionButton(
+                                text: currentQuestion.options[2],
+                                color: const Color(0xFFFF9800), // Orange
+                                onTap: () => _onOptionSelected(2),
                               ),
-                            ),
-                            
-                            // Hint Tooltip
-                            if (_showHint)
+                              
+                              // Mascot hint button
                               Positioned(
-                                right: 60,
-                                bottom: 20,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.grey.shade400, width: 2),
-                                  ),
-                                  child: Text(
-                                    currentQuestion.hint,
-                                    style: const TextStyle(
-                                      color: AppColors.textDark,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                right: -10,
+                                bottom: -10,
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _showHint = !_showHint),
+                                  child: Container(
+                                    width: 60,
+                                    height: 60,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.black, width: 2),
+                                      boxShadow: const [
+                                        BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+                                      ],
+                                      image: const DecorationImage(
+                                        image: AssetImage('assets/images/eco_ajolote_mascot.png'),
+                                        fit: BoxFit.cover,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
-                      ],
+                              
+                              // Hint Tooltip
+                              if (_showHint)
+                                Positioned(
+                                  right: 60,
+                                  bottom: 20,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: Colors.grey.shade400, width: 2),
+                                    ),
+                                    child: Text(
+                                      currentQuestion.hint,
+                                      style: const TextStyle(
+                                        color: AppColors.textDark,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

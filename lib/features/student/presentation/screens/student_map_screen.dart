@@ -3,10 +3,17 @@ import '../../../../core/constants/app_colors.dart';
 import '../widgets/level_node_button.dart';
 import '../widgets/map_path_painter.dart';
 import '../../domain/models/quiz_model.dart';
+import '../../domain/models/game_state.dart';
 import 'student_quiz_screen.dart';
+import '../../../teacher/presentation/screens/teacher_level_management_screen.dart';
 
 class StudentMapScreen extends StatefulWidget {
-  const StudentMapScreen({super.key});
+  final bool isTeacher;
+  
+  const StudentMapScreen({
+    super.key,
+    this.isTeacher = false,
+  });
 
   @override
   State<StudentMapScreen> createState() => _StudentMapScreenState();
@@ -70,111 +77,125 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             child: SizedBox(
               width: screenWidth,
               height: _mapHeight,
-              child: Stack(
-            children: [
-              // 1. Background Image
-              Positioned.fill(
-                child: Image.asset(
-                  'assets/images/biome_map_bg_1778462946588.png',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.bottomCenter,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            Color(0xFFE67E22), // Desert orange
-                            Color(0xFFF1C40F), // Sand yellow
-                            Color(0xFF27AE60), // Jungle green
-                            Color(0xFF1E8449), // Deep jungle
-                          ],
-                          stops: [0.0, 0.3, 0.6, 1.0],
+              child: ValueListenableBuilder<List<bool>>(
+                valueListenable: GameState.instance.unlockedLevels,
+                builder: (context, unlockedLevels, child) {
+                  return Stack(
+                    children: [
+                      // 1. Background Image
+                      Positioned.fill(
+                        child: Image.asset(
+                          'assets/images/biome_map_bg_1778462946588.png',
+                          fit: BoxFit.cover,
+                          alignment: Alignment.bottomCenter,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: [
+                                    Color(0xFFE67E22), // Desert orange
+                                    Color(0xFFF1C40F), // Sand yellow
+                                    Color(0xFF27AE60), // Jungle green
+                                    Color(0xFF1E8449), // Deep jungle
+                                  ],
+                                  stops: [0.0, 0.3, 0.6, 1.0],
+                                ),
+                              ),
+                              child: const Center(child: Text('Fondo de Mapa')),
+                            );
+                          },
                         ),
                       ),
-                      child: const Center(child: Text('Fondo de Mapa')),
-                    );
-                  },
-                ),
-              ),
 
-              // 2. Dashed Path connecting the nodes
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: MapPathPainter(
-                    points: absolutePoints,
-                    pathColor: const Color(0xFFFAE5D3), // Light sandy color
-                    strokeWidth: 12.0,
-                  ),
-                ),
-              ),
+                      // 2. Dashed Path connecting the nodes
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: MapPathPainter(
+                            points: absolutePoints,
+                            pathColor: const Color(0xFFFAE5D3), // Light sandy color
+                            strokeWidth: 12.0,
+                          ),
+                        ),
+                      ),
 
-              // 3. Level Nodes
-              ...List.generate(6, (index) {
-                final pos = absolutePoints[index];
-                
-                // Allow clicking all levels for testing
-                LevelStatus status = LevelStatus.completed;
-                int stars = 3;
-                if (index == 4) {
-                  status = LevelStatus.current;
-                  stars = 0;
-                } else if (index == 5) {
-                  status = LevelStatus.current;
-                  stars = 0;
-                }
+                      // 3. Level Nodes
+                      ...List.generate(6, (index) {
+                        final pos = absolutePoints[index];
+                        
+                        final bool isUnlocked = unlockedLevels[index];
+                        LevelStatus status = isUnlocked ? LevelStatus.completed : LevelStatus.locked;
+                        
+                        // Si está desbloqueado, digamos que tiene 3 estrellas para demostración
+                        int stars = isUnlocked ? 3 : 0;
+                        
+                        // Si es el nivel más alto desbloqueado, lo marcamos como "current"
+                        // Encontramos el índice más alto que está en true
+                        final int highestUnlockedIndex = unlockedLevels.lastIndexOf(true);
+                        if (index == highestUnlockedIndex) {
+                          status = LevelStatus.current;
+                          stars = 0; // El nivel actual no tiene estrellas todavía
+                        }
 
-                return Positioned(
-                  left: pos.dx - 35, // center horizontally (approx half of node width)
-                  top: pos.dy - 35,  // center vertically
-                  child: LevelNodeButton(
-                    levelNumber: index + 1,
-                    status: status,
-                    stars: stars,
-                    onTap: () {
-                      if (status != LevelStatus.locked) {
-                        final List<QuizQuestion> biomeQuestions = _getQuestionsForBiome(index);
+                        return Positioned(
+                          left: pos.dx - 35, // center horizontally
+                          top: pos.dy - 35,  // center vertically
+                          child: LevelNodeButton(
+                            levelNumber: index + 1,
+                            status: status,
+                            stars: stars,
+                            onTap: () {
+                              if (status != LevelStatus.locked) {
+                                final List<QuizQuestion> biomeQuestions = _getQuestionsForBiome(index);
 
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => StudentQuizScreen(
-                              questions: biomeQuestions,
-                              levelIndex: index,
-                            ),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => StudentQuizScreen(
+                                      questions: biomeQuestions,
+                                      levelIndex: index,
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
                           ),
                         );
-                      }
-                    },
-                  ),
-                );
-              }),
+                      }),
 
-              // 4. Avatar (Eco the Ajolote) hovering near current level (Level 3)
-              Positioned(
-                left: absolutePoints[2].dx - 60,
-                top: absolutePoints[2].dy - 90,
-                child: Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 3),
-                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/eco_ajolote.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(color: Colors.pink.shade200),
-                    ),
-                  ),
-                ),
+                      // 4. Avatar (Eco the Ajolote) hovering near current level
+                      Builder(
+                        builder: (context) {
+                          final int highestUnlockedIndex = unlockedLevels.lastIndexOf(true);
+                          final int targetIndex = highestUnlockedIndex >= 0 ? highestUnlockedIndex : 0;
+                          return Positioned(
+                            left: absolutePoints[targetIndex].dx - 60,
+                            top: absolutePoints[targetIndex].dy - 90,
+                            child: Container(
+                              width: 70,
+                              height: 70,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 3),
+                                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
+                              ),
+                              child: ClipOval(
+                                child: Image.asset(
+                                  'assets/images/eco_ajolote.png',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(color: Colors.pink.shade200),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      ),
+                    ],
+                  );
+                },
               ),
-            ],
-          ),
-        ),
+            ),
       ),
     );
   },
@@ -210,9 +231,34 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                 ),
           ),
           const Spacer(),
+          // Hearts Counter Pill
+          ValueListenableBuilder<int>(
+            valueListenable: GameState.instance.hearts,
+            builder: (context, heartsCount, child) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE74C3C), // Red
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF922B21), width: 2), // Dark red border
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.favorite, color: Colors.white, size: 18),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$heartsCount',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
           // Star Counter Pill
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: const Color(0xFFF39C12), // Orange
               borderRadius: BorderRadius.circular(20),
@@ -220,7 +266,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             ),
             child: const Row(
               children: [
-                Icon(Icons.star_border, color: Colors.white, size: 20),
+                Icon(Icons.star_border, color: Colors.white, size: 18),
                 SizedBox(width: 4),
                 Text(
                   '124',
@@ -239,7 +285,18 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             ),
             child: IconButton(
               icon: const Icon(Icons.settings_outlined, color: AppColors.studentBorder),
-              onPressed: () {},
+              onPressed: () {
+                if (widget.isTeacher) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TeacherLevelManagementScreen(),
+                    ),
+                  );
+                } else {
+                  // TODO: Pantalla de configuración del alumno
+                }
+              },
             ),
           ),
         ],

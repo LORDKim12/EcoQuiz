@@ -19,7 +19,7 @@ class _TeacherMainScreenState extends State<TeacherMainScreen> {
   // In a real app, Map, Journal, and Awards might be slightly different for teachers
   // but we reuse the student ones here as placeholders to complete the shell.
   final List<Widget> _screens = [
-    const StudentMapScreen(),
+    const StudentMapScreen(isTeacher: true),
     const StudentJournalScreen(),
     const StudentAwardsScreen(),
     const TeacherProfileScreen(),
