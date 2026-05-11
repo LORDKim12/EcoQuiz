@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../widgets/level_node_button.dart';
 import '../widgets/map_path_painter.dart';
+import '../../domain/models/quiz_model.dart';
+import 'student_quiz_screen.dart';
 
 class StudentMapScreen extends StatefulWidget {
   const StudentMapScreen({super.key});
@@ -20,11 +22,12 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   // X is horizontal percentage (0.0 to 1.0)
   // Y is vertical absolute position from TOP
   final List<Offset> _nodePositions = [
-    const Offset(0.3, 1300), // Level 1 (bottom left-ish)
-    const Offset(0.6, 1050), // Level 2 (middle right)
-    const Offset(0.7, 800),  // Level 3 (upper right)
-    const Offset(0.4, 550),  // Level 4 (middle left)
-    const Offset(0.6, 300),  // Level 5 (top right-ish)
+    const Offset(0.3, 1350), // Nivel 1: Ciudad (bottom)
+    const Offset(0.6, 1150), // Nivel 2: Manglar
+    const Offset(0.4, 900),  // Nivel 3: Arrecife
+    const Offset(0.7, 650),  // Nivel 4: Bosque
+    const Offset(0.3, 400),  // Nivel 5: Selva
+    const Offset(0.6, 150),  // Nivel 6: Desierto (top)
   ];
 
   @override
@@ -72,7 +75,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               // 1. Background Image
               Positioned.fill(
                 child: Image.asset(
-                  'assets/images/desert_jungle_map_bg.png',
+                  'assets/images/biome_map_bg_1778462946588.png',
                   fit: BoxFit.cover,
                   alignment: Alignment.bottomCenter,
                   errorBuilder: (context, error, stackTrace) {
@@ -108,22 +111,18 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               ),
 
               // 3. Level Nodes
-              ...List.generate(5, (index) {
+              ...List.generate(6, (index) {
                 final pos = absolutePoints[index];
                 
-                // For demo purposes: Level 1 and 2 completed, Level 3 current, others locked
-                LevelStatus status;
-                int stars = 0;
-                if (index == 0) {
-                  status = LevelStatus.completed;
-                  stars = 3;
-                } else if (index == 1) {
-                  status = LevelStatus.completed;
-                  stars = 2;
-                } else if (index == 2) {
+                // Allow clicking all levels for testing
+                LevelStatus status = LevelStatus.completed;
+                int stars = 3;
+                if (index == 4) {
                   status = LevelStatus.current;
-                } else {
-                  status = LevelStatus.locked;
+                  stars = 0;
+                } else if (index == 5) {
+                  status = LevelStatus.current;
+                  stars = 0;
                 }
 
                 return Positioned(
@@ -135,9 +134,16 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                     stars: stars,
                     onTap: () {
                       if (status != LevelStatus.locked) {
-                        // Open level detail or start quiz
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Abriendo Nivel ${index + 1}')),
+                        final List<QuizQuestion> biomeQuestions = _getQuestionsForBiome(index);
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => StudentQuizScreen(
+                              questions: biomeQuestions,
+                              levelIndex: index,
+                            ),
+                          ),
                         );
                       }
                     },
@@ -239,5 +245,78 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         ],
       ),
     );
+  }
+
+  List<QuizQuestion> _getQuestionsForBiome(int index) {
+    switch (index) {
+      case 0: // Ciudad
+        return [
+          const QuizQuestion(
+            questionText: '¿Cuál es la regla de las 3 R en la ciudad para cuidar el medio ambiente?',
+            imageAssetPath: 'assets/images/eco_ajolote_mascot.png',
+            options: ['Robar, Romper, Reír', 'Reducir, Reutilizar, Reciclar', 'Rápido, Ruidoso, Raro'],
+            correctOptionIndex: 1,
+            hint: 'Son acciones para generar menos basura.',
+            funFact: 'Reciclar una lata de aluminio ahorra suficiente energía para encender una TV por 3 horas.',
+          ),
+        ];
+      case 1: // Manglar
+        return [
+          const QuizQuestion(
+            questionText: '¿Qué característica especial tienen los árboles del manglar?',
+            imageAssetPath: 'assets/images/eco_ajolote_mascot.png',
+            options: ['Crecen en la nieve', 'Sus raíces crecen en agua salada', 'No necesitan agua'],
+            correctOptionIndex: 1,
+            hint: 'Viven donde se junta el río con el mar.',
+            funFact: 'Los manglares protegen las costas de los huracanes como si fueran escudos naturales.',
+          ),
+        ];
+      case 2: // Arrecife
+        return [
+          const QuizQuestion(
+            questionText: '¿Los corales del arrecife son plantas o animales?',
+            imageAssetPath: 'assets/images/eco_ajolote_mascot.png',
+            options: ['Plantas', 'Animales', 'Piedras de colores'],
+            correctOptionIndex: 1,
+            hint: 'Aunque no se mueven de lugar, están vivos y comen plancton.',
+            funFact: 'Los corales son en realidad animales diminutos llamados pólipos que construyen grandes esqueletos de calcio.',
+          ),
+        ];
+      case 3: // Bosque
+        return [
+          const QuizQuestion(
+            questionText: '¿Qué asombroso animal migra miles de kilómetros hacia los bosques de México?',
+            imageAssetPath: 'assets/images/eco_ajolote_mascot.png',
+            options: ['Oso pardo', 'Mariposa Monarca', 'Pingüino Emperador'],
+            correctOptionIndex: 1,
+            hint: 'Es un insecto volador de color naranja y negro.',
+            funFact: 'La mariposa monarca viaja desde Canadá hasta los bosques de Michoacán cada invierno.',
+          ),
+        ];
+      case 4: // Selva
+        return [
+          const QuizQuestion(
+            questionText: '¿Cuál de estos felinos vive en la selva y sabe nadar muy bien?',
+            imageAssetPath: 'assets/images/quiz_jaguar_1778457575331.png',
+            options: ['Jaguar', 'León africano', 'Gato doméstico'],
+            correctOptionIndex: 0,
+            hint: 'Tiene hermosas manchas llamadas rosetas en su piel.',
+            funFact: 'El jaguar es el felino más grande de toda América.',
+          ),
+        ];
+      case 5: // Desierto
+        return [
+          const QuizQuestion(
+            questionText: '¿Dónde almacenan el agua los cactus para sobrevivir en el desierto?',
+            imageAssetPath: 'assets/images/eco_ajolote_mascot.png',
+            options: ['En sus flores', 'En sus raíces', 'En sus gruesos tallos verdes'],
+            correctOptionIndex: 2,
+            hint: 'Es la parte grande, verde y carnosa de la planta.',
+            funFact: '¡Un cactus gigante llamado Saguaro puede almacenar hasta 5,000 litros de agua en su interior!',
+          ),
+        ];
+      default:
+        return [];
+    }
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../widgets/encyclopedia_card.dart';
+import 'student_level_complete_screen.dart';
+import '../../domain/models/game_state.dart';
 
 class StudentJournalScreen extends StatefulWidget {
   const StudentJournalScreen({super.key});
@@ -68,26 +70,31 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
                       child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
                     ),
                     const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'PROGRESO',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textBrown.withOpacity(0.8),
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        Text(
-                          '23 de 60 descubiertos',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                color: AppColors.textDark,
-                                fontSize: 18,
+                    ValueListenableBuilder<List<int>>(
+                      valueListenable: GameState.instance.unlockedCards,
+                      builder: (context, unlocked, child) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'PROGRESO',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textBrown.withOpacity(0.8),
+                                letterSpacing: 1.2,
                               ),
-                        ),
-                      ],
+                            ),
+                            Text(
+                              '${unlocked.length} de ${GameState.allCards.length} descubiertos',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: AppColors.textDark,
+                                    fontSize: 18,
+                                  ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -126,12 +133,17 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.55, // Adjusted to prevent overflow on small screens
-                  children: _showAnimals ? _buildAnimalCards() : _buildPlantCards(),
+                child: ValueListenableBuilder<List<int>>(
+                  valueListenable: GameState.instance.unlockedCards,
+                  builder: (context, unlocked, child) {
+                    return GridView.count(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.55,
+                      children: _showAnimals ? _buildDynamicCards(unlocked) : _buildPlantCards(),
+                    );
+                  },
                 ),
               ),
             ),
@@ -186,35 +198,24 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
     );
   }
 
-  List<Widget> _buildAnimalCards() {
-    return [
-      EncyclopediaCard(
-        title: 'Jaguar',
-        subtitle: 'Panthera onca',
-        imagePath: 'assets/images/card_jaguar.png',
-        number: '#001',
-        typeIcon: Icons.pets,
-        themeColor: const Color(0xFF2980B9), // Blue border
-        tags: [
-          CardTag(label: 'Selva', bgColor: const Color(0xFFFDEBD0), textColor: AppColors.textBrown),
-          CardTag(label: 'Vulnerable', bgColor: const Color(0xFFFADBD8), textColor: const Color(0xFFC0392B)),
-        ],
-      ),
-      EncyclopediaCard(
-        title: 'Ajolote',
-        subtitle: 'Ambystoma mexicanum',
-        imagePath: 'assets/images/card_ajolote.png',
-        number: '#012',
-        typeIcon: Icons.water_drop,
-        themeColor: const Color(0xFF873600), // Brown border
-        tags: [
-          CardTag(label: 'Lago', bgColor: const Color(0xFFFDEBD0), textColor: AppColors.textBrown),
-          CardTag(label: 'Peligro Crítico', bgColor: const Color(0xFFFADBD8), textColor: const Color(0xFFC0392B)),
-        ],
-      ),
-      const LockedEncyclopediaCard(),
-      const LockedEncyclopediaCard(),
-    ];
+  List<Widget> _buildDynamicCards(List<int> unlockedIds) {
+    return GameState.allCards.map((cardData) {
+      if (unlockedIds.contains(cardData.id)) {
+        return EncyclopediaCard(
+          title: cardData.title,
+          subtitle: cardData.subtitle,
+          imagePath: cardData.imagePath,
+          number: cardData.number,
+          typeIcon: cardData.typeIcon,
+          themeColor: cardData.themeColor,
+          tags: [
+            CardTag(label: 'Descubierto', bgColor: const Color(0xFFD6EAF8), textColor: const Color(0xFF2980B9)),
+          ],
+        );
+      } else {
+        return const LockedEncyclopediaCard();
+      }
+    }).toList();
   }
 
   List<Widget> _buildPlantCards() {
