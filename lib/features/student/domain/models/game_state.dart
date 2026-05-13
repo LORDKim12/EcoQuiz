@@ -22,50 +22,202 @@ class EncyclopediaCardData {
   });
 }
 
+class LevelData {
+  final int id;
+  final String title;
+  final bool isUnlocked;
+
+  LevelData({required this.id, required this.title, this.isUnlocked = false});
+
+  Map<String, dynamic> toJson() => {'id': id, 'title': title, 'isUnlocked': isUnlocked};
+  factory LevelData.fromJson(Map<String, dynamic> json) => LevelData(
+        id: json['id'],
+        title: json['title'],
+        isUnlocked: json['isUnlocked'] ?? false,
+      );
+}
+
+class RewardData {
+  final String id;
+  final String title;
+  final String subtitle;
+  final int cost;
+  final int colorValue;
+  final int iconCodePoint;
+
+  RewardData({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.cost,
+    required this.colorValue,
+    required this.iconCodePoint,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'subtitle': subtitle,
+        'cost': cost,
+        'colorValue': colorValue,
+        'iconCodePoint': iconCodePoint,
+      };
+
+  factory RewardData.fromJson(Map<String, dynamic> json) => RewardData(
+        id: json['id'],
+        title: json['title'],
+        subtitle: json['subtitle'],
+        cost: json['cost'],
+        colorValue: json['colorValue'],
+        iconCodePoint: json['iconCodePoint'],
+      );
+}
+
 class GameState {
   static final GameState instance = GameState._internal();
   GameState._internal();
 
   final ValueNotifier<List<int>> unlockedCards = ValueNotifier<List<int>>([0, 4]);
-  
-  final ValueNotifier<List<bool>> unlockedLevels = ValueNotifier<List<bool>>([
-    true, false, false, false, false, false,
-  ]);
-
   final ValueNotifier<int> hearts = ValueNotifier<int>(5);
+  
+  // Nuevos estados dinámicos
+  final ValueNotifier<List<LevelData>> levels = ValueNotifier<List<LevelData>>([]);
+  final ValueNotifier<List<RewardData>> rewards = ValueNotifier<List<RewardData>>([]);
+  
+  // Mapea el id del nivel a las estrellas obtenidas (0-3)
+  final ValueNotifier<Map<String, int>> levelStars = ValueNotifier<Map<String, int>>({});
+  
+  // Total de estrellas sumadas
+  final ValueNotifier<int> totalStars = ValueNotifier<int>(0);
 
   SharedPreferences? _prefs;
 
-  // Cargar datos guardados
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     
-    // Cargar tarjetas
+    // 1. Cargar tarjetas
     final String? cardsJson = _prefs?.getString('unlocked_cards');
     if (cardsJson != null) {
       unlockedCards.value = List<int>.from(jsonDecode(cardsJson));
     }
 
-    // Cargar niveles
-    final String? levelsJson = _prefs?.getString('unlocked_levels');
+    // 2. Cargar niveles
+    final String? levelsJson = _prefs?.getString('dynamic_levels');
     if (levelsJson != null) {
-      unlockedLevels.value = List<bool>.from(jsonDecode(levelsJson));
+      final List<dynamic> decoded = jsonDecode(levelsJson);
+      levels.value = decoded.map((e) => LevelData.fromJson(e)).toList();
+    } else {
+      _initDefaultLevels();
     }
 
-    // Cargar vidas
+    // 3. Cargar recompensas
+    final String? rewardsJson = _prefs?.getString('dynamic_rewards');
+    if (rewardsJson != null) {
+      final List<dynamic> decoded = jsonDecode(rewardsJson);
+      rewards.value = decoded.map((e) => RewardData.fromJson(e)).toList();
+    } else {
+      _initDefaultRewards();
+    }
+
+    // 4. Cargar estrellas por nivel
+    final String? starsJson = _prefs?.getString('level_stars');
+    if (starsJson != null) {
+      final Map<String, dynamic> decoded = jsonDecode(starsJson);
+      levelStars.value = decoded.map((key, value) => MapEntry(key, value as int));
+      _recalculateTotalStars();
+    }
+
+    // 5. Cargar vidas
     final int? savedHearts = _prefs?.getInt('hearts');
     if (savedHearts != null) {
       hearts.value = savedHearts;
     }
   }
 
-  void setLevelUnlocked(int index, bool isUnlocked) {
-    final newList = List<bool>.from(unlockedLevels.value);
-    newList[index] = isUnlocked;
-    unlockedLevels.value = newList;
-    _prefs?.setString('unlocked_levels', jsonEncode(newList));
+  void _initDefaultLevels() {
+    levels.value = [
+      LevelData(id: 0, title: 'Ciudad', isUnlocked: true),
+      LevelData(id: 1, title: 'Manglar', isUnlocked: false),
+      LevelData(id: 2, title: 'Arrecife', isUnlocked: false),
+      LevelData(id: 3, title: 'Bosque', isUnlocked: false),
+      LevelData(id: 4, title: 'Selva', isUnlocked: false),
+      LevelData(id: 5, title: 'Desierto', isUnlocked: false),
+    ];
+    _saveLevels();
   }
 
+  void _initDefaultRewards() {
+    rewards.value = [
+      RewardData(id: 'r1', title: 'Avatar Especial', subtitle: 'Ocelote', cost: 50, colorValue: 0xFF8E44AD, iconCodePoint: Icons.face.codePoint),
+      RewardData(id: 'r2', title: 'Pista Extra', subtitle: 'Para el Quiz', cost: 10, colorValue: 0xFFF1C40F, iconCodePoint: Icons.lightbulb_outline.codePoint),
+      RewardData(id: 'r3', title: 'Fondo Animado', subtitle: 'Desierto', cost: 100, colorValue: 0xFF27AE60, iconCodePoint: Icons.wallpaper.codePoint),
+      RewardData(id: 'r4', title: 'Marco de Oro', subtitle: 'Para tu Perfil', cost: 200, colorValue: 0xFFE67E22, iconCodePoint: Icons.crop_square.codePoint),
+    ];
+    _saveRewards();
+  }
+
+  void _saveLevels() {
+    final jsonList = levels.value.map((e) => e.toJson()).toList();
+    _prefs?.setString('dynamic_levels', jsonEncode(jsonList));
+  }
+
+  void _saveRewards() {
+    final jsonList = rewards.value.map((e) => e.toJson()).toList();
+    _prefs?.setString('dynamic_rewards', jsonEncode(jsonList));
+  }
+
+  // ---- Métodos de Niveles ----
+  void setLevelUnlocked(int id, bool isUnlocked) {
+    final newList = List<LevelData>.from(levels.value);
+    final index = newList.indexWhere((l) => l.id == id);
+    if (index != -1) {
+      newList[index] = LevelData(id: id, title: newList[index].title, isUnlocked: isUnlocked);
+      levels.value = newList;
+      _saveLevels();
+    }
+  }
+
+  void addLevel(String title) {
+    final newList = List<LevelData>.from(levels.value);
+    final newId = newList.isEmpty ? 0 : newList.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
+    newList.add(LevelData(id: newId, title: title, isUnlocked: true));
+    levels.value = newList;
+    _saveLevels();
+  }
+
+  // ---- Métodos de Recompensas ----
+  void addReward(RewardData reward) {
+    final newList = List<RewardData>.from(rewards.value)..add(reward);
+    rewards.value = newList;
+    _saveRewards();
+  }
+
+  void removeReward(String id) {
+    final newList = List<RewardData>.from(rewards.value)..removeWhere((r) => r.id == id);
+    rewards.value = newList;
+    _saveRewards();
+  }
+
+  // ---- Métodos de Estrellas ----
+  void saveStarsForLevel(int levelId, int starsEarned) {
+    final currentStars = levelStars.value[levelId.toString()] ?? 0;
+    // Solo guardamos si el nuevo puntaje es mayor al anterior
+    if (starsEarned > currentStars) {
+      final newMap = Map<String, int>.from(levelStars.value);
+      newMap[levelId.toString()] = starsEarned;
+      levelStars.value = newMap;
+      _prefs?.setString('level_stars', jsonEncode(newMap));
+      _recalculateTotalStars();
+    }
+  }
+
+  void _recalculateTotalStars() {
+    int total = 0;
+    levelStars.value.values.forEach((stars) => total += stars);
+    totalStars.value = total;
+  }
+
+  // ---- Métodos Viejos (Mantenidos) ----
   void unlockCard(int id) {
     if (!unlockedCards.value.contains(id)) {
       final newList = List.from(unlockedCards.value)..add(id);
@@ -86,6 +238,7 @@ class GameState {
     _prefs?.setInt('hearts', hearts.value);
   }
 
+  // ---- Lista de tarjetas (Fija por ahora, ya que el profe aceptó que el journal quede igual) ----
   static const List<EncyclopediaCardData> allCards = [
     EncyclopediaCardData(
       id: 0,

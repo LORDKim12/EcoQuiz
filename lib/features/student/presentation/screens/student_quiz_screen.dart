@@ -38,12 +38,18 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                 });
               } else {
                 // Quiz finished, show level complete screen
+                int earned = 1;
+                final h = GameState.instance.hearts.value;
+                if (h == 5) earned = 3;
+                else if (h >= 3) earned = 2;
+                else if (h <= 0) earned = 0;
+
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
                     builder: (context) => StudentLevelCompleteScreen(
                       levelIndex: widget.levelIndex,
-                      earnedStars: 3,
+                      earnedStars: earned,
                     ),
                   ),
                 );

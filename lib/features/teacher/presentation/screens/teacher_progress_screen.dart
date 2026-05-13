@@ -78,14 +78,15 @@ class TeacherProgressScreen extends StatelessWidget {
                     bgColor: const Color(0xFFFEF9E7),
                   ),
                   const SizedBox(width: 12),
-                  ValueListenableBuilder<List<bool>>(
-                    valueListenable: GameState.instance.unlockedLevels,
+                  ValueListenableBuilder<List<LevelData>>(
+                    valueListenable: GameState.instance.levels,
                     builder: (context, levels, _) {
-                      final unlocked = levels.where((b) => b).length;
+                      final unlocked = levels.where((l) => l.isUnlocked).length;
+                      final total = levels.length;
                       return _buildStatPill(
                         icon: Icons.lock_open,
                         label: 'Niveles',
-                        value: '$unlocked / 6',
+                        value: '$unlocked / $total',
                         color: const Color(0xFF2B9BF4),
                         bgColor: const Color(0xFFD6EAF8),
                       );

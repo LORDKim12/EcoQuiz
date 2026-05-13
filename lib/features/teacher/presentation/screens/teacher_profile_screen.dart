@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import 'teacher_progress_screen.dart';
 import 'teacher_level_management_screen.dart';
+import 'teacher_awards_management_screen.dart';
+import 'teacher_group_management_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 
 class TeacherProfileScreen extends StatelessWidget {
@@ -90,12 +92,31 @@ class TeacherProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _buildActionButton(
-                label: 'Configurar Grupo',
-                icon: Icons.group_add,
+                label: 'Gestión de Premios',
+                icon: Icons.card_giftcard,
                 bgColor: const Color(0xFFD6EAF8), // Light blue
                 textColor: AppColors.textDark,
                 iconBgColor: Colors.black.withOpacity(0.05),
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TeacherAwardsManagementScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildActionButton(
+                label: 'Configurar Grupo',
+                icon: Icons.group_add,
+                bgColor: const Color(0xFFE8DAEF), // Light purple
+                textColor: AppColors.textDark,
+                iconBgColor: Colors.black.withOpacity(0.05),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TeacherGroupManagementScreen()),
+                  );
+                },
               ),
               const SizedBox(height: 32),
               

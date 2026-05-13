@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../home/presentation/screens/home_screen.dart';
+import '../../domain/models/game_state.dart';
 
 class StudentProfileScreen extends StatelessWidget {
   const StudentProfileScreen({super.key});
@@ -44,40 +45,37 @@ class StudentProfileScreen extends StatelessWidget {
               const SizedBox(height: 24),
               
               // 3. Lista de Ranking
-              _buildRankingCard(
-                name: 'Sofía Ramírez',
-                stars: 30,
-                progress: 0.8,
-                progressColor: const Color(0xFF005A9C), // Dark blue
-                avatarColor: Colors.blue.shade200,
-                isCurrentUser: false,
-              ),
-              const SizedBox(height: 12),
-              _buildRankingCard(
-                name: 'Ana López',
-                stars: 24,
-                progress: 0.6,
-                progressColor: const Color(0xFF27AE60), // Green
-                avatarColor: Colors.green.shade200,
-                isCurrentUser: false,
-              ),
-              const SizedBox(height: 12),
-              _buildRankingCard(
-                name: 'Juan Pérez',
-                stars: 18,
-                progress: 0.45,
-                progressColor: const Color(0xFFF39C12), // Orange
-                avatarColor: Colors.orange.shade200,
-                isCurrentUser: true, // Assuming this is the current student
-              ),
-              const SizedBox(height: 12),
-              _buildRankingCard(
-                name: 'Carlos Méndez',
-                stars: 9,
-                progress: 0.2,
-                progressColor: const Color(0xFFE74C3C), // Red
-                avatarColor: Colors.red.shade200,
-                isCurrentUser: false,
+              ValueListenableBuilder<int>(
+                valueListenable: GameState.instance.totalStars,
+                builder: (context, myStars, child) {
+                  final List<Map<String, dynamic>> students = [
+                    {'name': 'Sofía Ramírez', 'stars': 30, 'progressColor': const Color(0xFF005A9C), 'avatarColor': Colors.blue.shade200, 'isCurrentUser': false},
+                    {'name': 'Ana López', 'stars': 24, 'progressColor': const Color(0xFF27AE60), 'avatarColor': Colors.green.shade200, 'isCurrentUser': false},
+                    {'name': 'Carlos Méndez', 'stars': 9, 'progressColor': const Color(0xFFE74C3C), 'avatarColor': Colors.red.shade200, 'isCurrentUser': false},
+                    {'name': 'Juan Pérez', 'stars': myStars, 'progressColor': const Color(0xFFF39C12), 'avatarColor': Colors.orange.shade200, 'isCurrentUser': true},
+                  ];
+
+                  // Sort by stars descending
+                  students.sort((a, b) => (b['stars'] as int).compareTo(a['stars'] as int));
+
+                  return Column(
+                    children: students.map((s) {
+                      // Calcular progreso falso basado en estrellas (max 40)
+                      final progress = (s['stars'] as int) / 40.0;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildRankingCard(
+                          name: s['name'] as String,
+                          stars: s['stars'] as int,
+                          progress: progress.clamp(0.0, 1.0),
+                          progressColor: s['progressColor'] as Color,
+                          avatarColor: s['avatarColor'] as Color,
+                          isCurrentUser: s['isCurrentUser'] as bool,
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
               ),
               
               const SizedBox(height: 32),

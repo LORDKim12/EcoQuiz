@@ -26,13 +26,25 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
   @override
   void initState() {
     super.initState();
-    cardData = GameState.allCards[widget.levelIndex];
+    // Fetch a fallback card if the dynamic level exceeds hardcoded cards
+    final safeCardIndex = widget.levelIndex % GameState.allCards.length;
+    cardData = GameState.allCards[safeCardIndex];
+    
     _confettiController = ConfettiController(duration: const Duration(seconds: 4));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      GameState.instance.unlockCard(widget.levelIndex);
+      GameState.instance.unlockCard(safeCardIndex);
+      GameState.instance.saveStarsForLevel(widget.levelIndex, widget.earnedStars);
+      
+      // If student passes next level unlock (only if not failed)
+      if (widget.earnedStars > 0) {
+         GameState.instance.setLevelUnlocked(widget.levelIndex + 1, true);
+      }
+      
       GameState.instance.restoreHearts();
-      _confettiController.play();
+      if (widget.earnedStars > 0) {
+        _confettiController.play();
+      }
     });
   }
 
