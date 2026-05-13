@@ -70,15 +70,25 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
         if (mounted) setState(() => _wrongAnswerFlash = false);
       });
 
+      final remainingHearts = GameState.instance.hearts.value;
+
+      // Game Over — sin corazones
+      if (remainingHearts <= 0) {
+        _showGameOverDialog();
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: [
               const Icon(Icons.favorite, color: Color(0xFFE74C3C), size: 20),
               const SizedBox(width: 8),
-              Text(
-                'Incorrecto — ¡Perdiste un corazón! (${GameState.instance.hearts.value} ❤️ restantes)',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+              Flexible(
+                child: Text(
+                  'Incorrecto — ¡Perdiste un corazón! ($remainingHearts ❤️ restantes)',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -89,6 +99,131 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
         ),
       );
     }
+  }
+
+  void _showGameOverDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFFFDE8E1),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              // Sad heart icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE74C3C).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text('💔', style: TextStyle(fontSize: 40)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                '¡Se acabaron tus\ncorazones!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF4A3423),
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'No te preocupes, todos los exploradores necesitan descansar. ¡Inténtalo de nuevo!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2C3E50),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Intentar de nuevo
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext); // Cerrar diálogo
+                    GameState.instance.restoreHearts();
+                    setState(() {
+                      _currentIndex = 0;
+                      _showHint = false;
+                      _wrongAnswerFlash = false;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF27AE60),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.refresh, color: Colors.white, size: 22),
+                      SizedBox(width: 8),
+                      Text(
+                        'Intentar de nuevo',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Volver al mapa
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext); // Cerrar diálogo
+                    GameState.instance.restoreHearts();
+                    Navigator.pop(context); // Salir del quiz
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: const BorderSide(color: Color(0xFF4A3423), width: 2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.map, color: Color(0xFF4A3423), size: 22),
+                      SizedBox(width: 8),
+                      Text(
+                        'Volver al mapa',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF4A3423),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override

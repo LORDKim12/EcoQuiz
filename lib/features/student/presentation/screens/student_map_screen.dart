@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../domain/models/game_state.dart';
-import '../../domain/models/quiz_model.dart';
+import '../../domain/data/question_bank.dart';
 import 'student_quiz_screen.dart';
 import '../../../teacher/presentation/screens/teacher_level_management_screen.dart';
 
@@ -103,12 +103,11 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                               stars: stars,
                               onTap: () {
                                 if (status != LevelStatus.locked) {
-                                  final List<QuizQuestion> biomeQuestions = _getQuestionsForBiome(level);
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => StudentQuizScreen(
-                                        questions: biomeQuestions,
+                                        questions: QuestionBank.getForBiome(level.id),
                                         levelIndex: level.id,
                                       ),
                                     ),
@@ -252,87 +251,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
     );
   }
 
-  List<QuizQuestion> _getQuestionsForBiome(LevelData level) {
-    if (level.id == 0) {
-      return [
-        const QuizQuestion(
-          questionText: '¿Cuál es la regla de las 3 R en la ciudad para cuidar el medio ambiente?',
-          imageAssetPath: 'assets/images/eco_ajolote_mascot.png',
-          options: ['Robar, Romper, Reír', 'Reducir, Reutilizar, Reciclar', 'Rápido, Ruidoso, Raro'],
-          correctOptionIndex: 1,
-          hint: 'Son acciones para generar menos basura.',
-          funFact: 'Reciclar una lata de aluminio ahorra suficiente energía para encender una TV por 3 horas.',
-        ),
-      ];
-    } else if (level.id == 1) {
-      return [
-        const QuizQuestion(
-          questionText: '¿Qué característica especial tienen los árboles del manglar?',
-          imageAssetPath: 'assets/images/eco_ajolote_mascot.png',
-          options: ['Crecen en la nieve', 'Sus raíces crecen en agua salada', 'No necesitan agua'],
-          correctOptionIndex: 1,
-          hint: 'Viven donde se junta el río con el mar.',
-          funFact: 'Los manglares protegen las costas de los huracanes como si fueran escudos naturales.',
-        ),
-      ];
-    } else if (level.id == 2) {
-      return [
-        const QuizQuestion(
-          questionText: '¿Los corales del arrecife son plantas o animales?',
-          imageAssetPath: 'assets/images/eco_ajolote_mascot.png',
-          options: ['Plantas', 'Animales', 'Piedras de colores'],
-          correctOptionIndex: 1,
-          hint: 'Aunque no se mueven de lugar, están vivos y comen plancton.',
-          funFact: 'Los corales son en realidad animales diminutos llamados pólipos que construyen grandes esqueletos de calcio.',
-        ),
-      ];
-    } else if (level.id == 3) {
-      return [
-        const QuizQuestion(
-          questionText: '¿Qué asombroso animal migra miles de kilómetros hacia los bosques de México?',
-          imageAssetPath: 'assets/images/eco_ajolote_mascot.png',
-          options: ['Oso pardo', 'Mariposa Monarca', 'Pingüino Emperador'],
-          correctOptionIndex: 1,
-          hint: 'Es un insecto volador de color naranja y negro.',
-          funFact: 'La mariposa monarca viaja desde Canadá hasta los bosques de Michoacán cada invierno.',
-        ),
-      ];
-    } else if (level.id == 4) {
-      return [
-        const QuizQuestion(
-          questionText: '¿Cuál de estos felinos vive en la selva y sabe nadar muy bien?',
-          imageAssetPath: 'assets/images/quiz_jaguar_1778457575331.png',
-          options: ['Jaguar', 'León africano', 'Gato doméstico'],
-          correctOptionIndex: 0,
-          hint: 'Tiene hermosas manchas llamadas rosetas en su piel.',
-          funFact: 'El jaguar es el felino más grande de toda América.',
-        ),
-      ];
-    } else if (level.id == 5) {
-      return [
-        const QuizQuestion(
-          questionText: '¿Dónde almacenan el agua los cactus para sobrevivir en el desierto?',
-          imageAssetPath: 'assets/images/eco_ajolote_mascot.png',
-          options: ['En sus flores', 'En sus raíces', 'En sus gruesos tallos verdes'],
-          correctOptionIndex: 2,
-          hint: 'Es la parte grande, verde y carnosa de la planta.',
-          funFact: '¡Un cactus gigante llamado Saguaro puede almacenar hasta 5,000 litros de agua en su interior!',
-        ),
-      ];
-    } else {
-      // Generic question for dynamic biomes added by teacher
-      return [
-        QuizQuestion(
-          questionText: '¿Qué tipo de flora y fauna es predominante en ${level.title}?',
-          imageAssetPath: 'assets/images/eco_ajolote_mascot.png',
-          options: ['Fauna marina', 'Vegetación adaptada y animales endémicos', 'Osos polares'],
-          correctOptionIndex: 1,
-          hint: 'Cada bioma tiene sus propias especies únicas.',
-          funFact: '¡Explorar nuevos ecosistemas nos ayuda a entender la biodiversidad del planeta!',
-        ),
-      ];
-    }
-  }
 }
 
 // Pintor para dibujar el camino en zigzag

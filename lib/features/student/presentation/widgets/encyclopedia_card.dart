@@ -215,11 +215,18 @@ class DashedRectPainter extends CustomPainter {
       ..addRRect(RRect.fromRectAndRadius(
           Rect.fromLTWH(0, 0, size.width, size.height), const Radius.circular(24)));
 
-    // Simulating dashed border for locked cards
-    // NOTE: A true dashed path requires path_drawing package or manual metric extraction,
-    // but a solid semi-transparent border works well for this design as a fallback.
-    // To match exactly, I'll draw small lines manually if needed, but for simplicity
-    // we use a styled border above. This painter acts as a placeholder if needed.
+    // Dibujar línea punteada recorriendo el path
+    const double dashWidth = 8.0;
+    const double dashSpace = 5.0;
+
+    for (final pathMetric in path.computeMetrics()) {
+      double distance = 0.0;
+      while (distance < pathMetric.length) {
+        final extractPath = pathMetric.extractPath(distance, distance + dashWidth);
+        canvas.drawPath(extractPath, paint);
+        distance += dashWidth + dashSpace;
+      }
+    }
   }
 
   @override
