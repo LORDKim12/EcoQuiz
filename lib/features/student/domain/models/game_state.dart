@@ -90,6 +90,12 @@ class GameState {
   // Total de estrellas sumadas
   final ValueNotifier<int> totalStars = ValueNotifier<int>(0);
 
+  // Nombre del jugador
+  final ValueNotifier<String> playerName = ValueNotifier<String>('Explorador');
+
+  // Premios comprados (IDs)
+  final ValueNotifier<List<String>> purchasedRewards = ValueNotifier<List<String>>([]);
+
   SharedPreferences? _prefs;
 
   Future<void> init() async {
@@ -131,6 +137,18 @@ class GameState {
     final int? savedHearts = _prefs?.getInt('hearts');
     if (savedHearts != null) {
       hearts.value = savedHearts;
+    }
+
+    // 6. Cargar nombre del jugador
+    final String? savedName = _prefs?.getString('player_name');
+    if (savedName != null && savedName.isNotEmpty) {
+      playerName.value = savedName;
+    }
+
+    // 7. Cargar premios comprados
+    final String? purchasedJson = _prefs?.getString('purchased_rewards');
+    if (purchasedJson != null) {
+      purchasedRewards.value = List<String>.from(jsonDecode(purchasedJson));
     }
   }
 
@@ -295,4 +313,67 @@ class GameState {
       themeColor: Color(0xFFE67E22), // Sand Orange
     ),
   ];
+
+  // ── Nombre del jugador ─────────────────────────────────────────
+  void setPlayerName(String name) {
+    playerName.value = name.trim().isEmpty ? 'Explorador' : name.trim();
+    _prefs?.setString('player_name', playerName.value);
+  }
+
+  // ── Comprar premio con estrellas ────────────────────────────────
+  bool spendStars(String rewardId, int cost) {
+    if (totalStars.value >= cost && !purchasedRewards.value.contains(rewardId)) {
+      totalStars.value -= cost;
+      // Recalcular las estrellas restando el costo
+      _prefs?.setInt('spent_stars', (_prefs?.getInt('spent_stars') ?? 0) + cost);
+
+      final newPurchased = List<String>.from(purchasedRewards.value)..add(rewardId);
+      purchasedRewards.value = newPurchased;
+      _prefs?.setString('purchased_rewards', jsonEncode(newPurchased));
+      return true;
+    }
+    return false;
+  }
+
+  bool isRewardPurchased(String rewardId) {
+    return purchasedRewards.value.contains(rewardId);
+  }
+
+  // ── Reiniciar todo el progreso ─────────────────────────────────
+  /// Limpia todas las tarjetas, estrellas, niveles y restaura corazones.
+  /// Útil para la demo (reiniciar entre alumnos).
+  void resetAllProgress() {
+    // Limpiar tarjetas desbloqueadas
+    unlockedCards.value = [];
+    _prefs?.setString('unlocked_cards', '[]');
+
+    // Limpiar estrellas de niveles
+    levelStars.value = {};
+    totalStars.value = 0;
+    _prefs?.setString('level_stars', '{}');
+    _prefs?.setInt('spent_stars', 0);
+
+    // Limpiar premios comprados
+    purchasedRewards.value = [];
+    _prefs?.setString('purchased_rewards', '[]');
+
+    // Restaurar corazones
+    restoreHearts();
+
+    // Reiniciar nombre
+    playerName.value = 'Explorador';
+    _prefs?.setString('player_name', 'Explorador');
+
+    // Reiniciar niveles: solo el primero desbloqueado
+    final defaultLevels = [
+      LevelData(id: 0, title: 'Ciudad', isUnlocked: true),
+      LevelData(id: 1, title: 'Manglar', isUnlocked: false),
+      LevelData(id: 2, title: 'Arrecife', isUnlocked: false),
+      LevelData(id: 3, title: 'Bosque', isUnlocked: false),
+      LevelData(id: 4, title: 'Selva', isUnlocked: false),
+      LevelData(id: 5, title: 'Desierto', isUnlocked: false),
+    ];
+    levels.value = defaultLevels;
+    _saveLevels();
+  }
 }

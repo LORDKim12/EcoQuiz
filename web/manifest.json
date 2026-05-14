@@ -1,11 +1,11 @@
 {
-    "name": "eco_quiz",
-    "short_name": "eco_quiz",
+    "name": "EcoQuiz — Naturaleza de México",
+    "short_name": "EcoQuiz",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FDF8F5",
+    "theme_color": "#27AE60",
+    "description": "Aplicación educativa sobre la naturaleza y biodiversidad de México para niños de primaria.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

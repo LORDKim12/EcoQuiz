@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 import '../../domain/models/game_state.dart';
+import '../widgets/settings_bottom_sheet.dart';
 
 class StudentProfileScreen extends StatelessWidget {
   const StudentProfileScreen({super.key});
@@ -52,7 +53,7 @@ class StudentProfileScreen extends StatelessWidget {
                     {'name': 'Sofía Ramírez', 'stars': 30, 'progressColor': const Color(0xFF005A9C), 'avatarColor': Colors.blue.shade200, 'isCurrentUser': false},
                     {'name': 'Ana López', 'stars': 24, 'progressColor': const Color(0xFF27AE60), 'avatarColor': Colors.green.shade200, 'isCurrentUser': false},
                     {'name': 'Carlos Méndez', 'stars': 9, 'progressColor': const Color(0xFFE74C3C), 'avatarColor': Colors.red.shade200, 'isCurrentUser': false},
-                    {'name': 'Juan Pérez', 'stars': myStars, 'progressColor': const Color(0xFFF39C12), 'avatarColor': Colors.orange.shade200, 'isCurrentUser': true},
+                    {'name': GameState.instance.playerName.value, 'stars': myStars, 'progressColor': const Color(0xFFF39C12), 'avatarColor': Colors.orange.shade200, 'isCurrentUser': true},
                   ];
 
                   // Sort by stars descending
@@ -147,13 +148,16 @@ class StudentProfileScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Juan Pérez',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.textBrown,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 22,
-                      ),
+                ValueListenableBuilder<String>(
+                  valueListenable: GameState.instance.playerName,
+                  builder: (context, name, _) => Text(
+                    name,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.textBrown,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 22,
+                        ),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Container(
@@ -312,7 +316,7 @@ class StudentProfileScreen extends StatelessWidget {
             ),
             child: IconButton(
               icon: const Icon(Icons.settings_outlined, color: AppColors.studentBorder),
-              onPressed: () {},
+              onPressed: () => SettingsBottomSheet.show(context),
             ),
           ),
         ],

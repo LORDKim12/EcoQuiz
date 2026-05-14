@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../domain/models/game_state.dart';
 import 'student_main_screen.dart';
 
 class StudentLoginScreen extends StatefulWidget {
@@ -164,6 +165,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () {
+                              GameState.instance.setPlayerName(_nameController.text);
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(

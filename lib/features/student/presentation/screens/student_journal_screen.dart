@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../widgets/encyclopedia_card.dart';
-import 'student_level_complete_screen.dart';
 import '../../domain/models/game_state.dart';
+import '../widgets/encyclopedia_card.dart';
+import '../widgets/settings_bottom_sheet.dart';
+import 'student_level_complete_screen.dart';
 
 class StudentJournalScreen extends StatefulWidget {
   const StudentJournalScreen({super.key});
@@ -260,7 +261,7 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
             ),
             child: IconButton(
               icon: const Icon(Icons.settings_outlined, color: AppColors.studentBorder),
-              onPressed: () {},
+              onPressed: () => SettingsBottomSheet.show(context),
             ),
           ),
         ],
