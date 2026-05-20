@@ -100,12 +100,14 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
                     colorHex: colorHexes[rand.nextInt(colorHexes.length)],
                   );
                   Navigator.pop(context);
+                  final gameState = context.read<GameState>();
+                  final messenger = ScaffoldMessenger.of(context);
                   try {
                     final teacherService = ref.read(teacherServiceProvider);
                     await teacherService.addReward(newReward);
 
                     // También sincronizar con GameState legacy
-                    context.read<GameState>().addReward(RewardData(
+                    gameState.addReward(RewardData(
                       id: newReward.id,
                       title: newReward.title,
                       subtitle: newReward.subtitle,
@@ -116,7 +118,7 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
 
                     await _loadRewards();
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text('✅ Premio agregado'),
                           backgroundColor: Colors.green,
@@ -125,7 +127,7 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
                     }
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
                       );
                     }
@@ -215,7 +217,7 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
                           physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                           itemCount: _rewards.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 16),
+                          separatorBuilder: (_, index) => const SizedBox(height: 16),
                           itemBuilder: (context, index) {
                             final reward = _rewards[index];
                             final color = Color(_hexToColor(reward.colorHex));
@@ -229,7 +231,7 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
                               child: ListTile(
                                 contentPadding: const EdgeInsets.all(16),
                                 leading: CircleAvatar(
-                                  backgroundColor: color.withOpacity(0.2),
+                                  backgroundColor: color.withValues(alpha: 0.2),
                                   child: Icon(icon, color: color),
                                 ),
                                 title: Text(reward.title, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -237,14 +239,16 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
                                 trailing: IconButton(
                                   icon: const Icon(Icons.delete, color: Colors.red),
                                   onPressed: () async {
+                                    final gameState = context.read<GameState>();
+                                    final messenger = ScaffoldMessenger.of(context);
                                     try {
                                       final teacherService = ref.read(teacherServiceProvider);
                                       await teacherService.removeReward(reward.id);
-                                      context.read<GameState>().removeReward(reward.id);
+                                      gameState.removeReward(reward.id);
                                       await _loadRewards();
                                     } catch (e) {
                                       if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        messenger.showSnackBar(
                                           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
                                         );
                                       }

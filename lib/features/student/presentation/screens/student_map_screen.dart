@@ -183,7 +183,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                                         child: Image.asset(
                                           'assets/images/eco_ajolote_mascot.png',
                                           fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => Container(color: Colors.pink.shade200),
+                                          errorBuilder: (context, error, stackTrace) => Container(color: Colors.pink.shade200),
                                         ),
                                       ),
                                     ),
@@ -204,23 +204,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
     );
   }
 
-  Widget _buildDefaultGradient() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [
-            Color(0xFFE67E22), // Desert orange
-            Color(0xFFF1C40F), // Sand yellow
-            Color(0xFF27AE60), // Jungle green
-            Color(0xFF1E8449), // Deep jungle
-          ],
-          stops: [0.0, 0.3, 0.6, 1.0],
-        ),
-      ),
-    );
-  }
 
   Widget _buildCustomAppBar(BuildContext context) {
     return Container(

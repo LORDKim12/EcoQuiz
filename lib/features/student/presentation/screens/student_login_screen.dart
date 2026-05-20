@@ -30,6 +30,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
     try {
       final authService = ref.read(authServiceProvider);
       final studentService = ref.read(studentServiceProvider);
+      final gameState = context.read<GameState>();
 
       // Login con Supabase
       final user = await authService.loginStudent(
@@ -43,7 +44,6 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
       studentService.setStudentId(user.id);
 
       // Sincronizar GameState desde Supabase (niveles, premios, estrellas, etc.)
-      final gameState = context.read<GameState>();
       gameState.setPlayerName(user.name);
       await gameState.syncFromSupabase(user.id);
 

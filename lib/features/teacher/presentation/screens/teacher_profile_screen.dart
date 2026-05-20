@@ -97,7 +97,7 @@ class TeacherProfileScreen extends StatelessWidget {
                 icon: Icons.public,
                 bgColor: const Color(0xFFD6EAF8), // Light blue
                 textColor: AppColors.textDark,
-                iconBgColor: Colors.black.withOpacity(0.05),
+                iconBgColor: Colors.black.withValues(alpha: 0.05),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -139,7 +139,7 @@ class TeacherProfileScreen extends StatelessWidget {
                 icon: Icons.quiz,
                 bgColor: const Color(0xFFFFF3CD), // Light yellow
                 textColor: AppColors.textDark,
-                iconBgColor: Colors.black.withOpacity(0.05),
+                iconBgColor: Colors.black.withValues(alpha: 0.05),
                 onTap: () {
                   Navigator.push(
                     context,

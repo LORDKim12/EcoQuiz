@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
-import 'package:provider/provider.dart';
-import '../../../student/domain/models/game_state.dart';
 import '../../../../core/providers/service_providers.dart';
 import '../../../../core/models/models.dart';
 
@@ -109,6 +107,7 @@ class _TeacherGroupManagementScreenState extends ConsumerState<TeacherGroupManag
               onPressed: () async {
                 if (_nameController.text.isNotEmpty && _selectedGroup != null) {
                   Navigator.pop(context);
+                  final messenger = ScaffoldMessenger.of(context);
                   try {
                     final teacherService = ref.read(teacherServiceProvider);
                     await teacherService.addStudentToGroup(
@@ -117,7 +116,7 @@ class _TeacherGroupManagementScreenState extends ConsumerState<TeacherGroupManag
                     );
                     await _loadStudents();
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text('✅ Alumno agregado'),
                           backgroundColor: Colors.green,
@@ -126,7 +125,7 @@ class _TeacherGroupManagementScreenState extends ConsumerState<TeacherGroupManag
                     }
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
                       );
                     }
@@ -170,6 +169,7 @@ class _TeacherGroupManagementScreenState extends ConsumerState<TeacherGroupManag
               onPressed: () async {
                 if (groupController.text.isNotEmpty) {
                   Navigator.pop(context);
+                  final messenger = ScaffoldMessenger.of(context);
                   try {
                     final teacherService = ref.read(teacherServiceProvider);
                     final newGroup = await teacherService.createGroup(groupController.text.trim());
@@ -177,7 +177,7 @@ class _TeacherGroupManagementScreenState extends ConsumerState<TeacherGroupManag
                     await _loadGroups();
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
                       );
                     }
@@ -328,6 +328,7 @@ class _TeacherGroupManagementScreenState extends ConsumerState<TeacherGroupManag
                           
                           int generated = 0;
                           final teacherService = ref.read(teacherServiceProvider);
+                          final messenger = ScaffoldMessenger.of(context);
                           for (var name in names) {
                             try {
                               await teacherService.addStudentToGroup(_selectedGroup!.id, name);
@@ -337,7 +338,7 @@ class _TeacherGroupManagementScreenState extends ConsumerState<TeacherGroupManag
                           await _loadStudents();
 
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            messenger.showSnackBar(
                               SnackBar(
                                 content: Row(
                                   children: [
@@ -518,7 +519,7 @@ class _TeacherGroupManagementScreenState extends ConsumerState<TeacherGroupManag
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2B9BF4).withOpacity(0.1),
+                              color: const Color(0xFF2B9BF4).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: const Color(0xFF2B9BF4), width: 2),
                             ),
@@ -602,7 +603,7 @@ class _TeacherGroupManagementScreenState extends ConsumerState<TeacherGroupManag
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(color: Colors.grey.shade200, width: 2),
                                   boxShadow: [
-                                    BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4)),
+                                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 4)),
                                   ],
                                 ),
                                 child: ListTile(
