@@ -1,14 +1,25 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/student/domain/models/game_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ── Supabase ─────────────────────────────────────────────────────────
+  await Supabase.initialize(
+    url: 'https://jsvwxceighiqslgkygow.supabase.co',
+    anonKey: 'sb_publishable_jzMj4HyMNsv-EfPbPmwqsg_dH-0XveR',
+  );
+
+  // GameState legacy — se mantiene durante la migración gradual.
   await GameState.instance.init();
-  runApp(const EcoQuizApp());
+
+  runApp(const ProviderScope(child: EcoQuizApp()));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

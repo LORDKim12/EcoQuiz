@@ -4,6 +4,7 @@ import 'teacher_progress_screen.dart';
 import 'teacher_level_management_screen.dart';
 import 'teacher_awards_management_screen.dart';
 import 'teacher_group_management_screen.dart';
+import 'teacher_question_management_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 
 class TeacherProfileScreen extends StatelessWidget {
@@ -92,6 +93,20 @@ class TeacherProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _buildActionButton(
+                label: 'Gestión de Mundos / Biomas',
+                icon: Icons.public,
+                bgColor: const Color(0xFFD6EAF8), // Light blue
+                textColor: AppColors.textDark,
+                iconBgColor: Colors.black.withOpacity(0.05),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TeacherLevelManagementScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildActionButton(
                 label: 'Gestión de Premios',
                 icon: Icons.card_giftcard,
                 bgColor: const Color(0xFFD6EAF8), // Light blue
@@ -115,6 +130,20 @@ class TeacherProfileScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const TeacherGroupManagementScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildActionButton(
+                label: 'Banco de Preguntas',
+                icon: Icons.quiz,
+                bgColor: const Color(0xFFFFF3CD), // Light yellow
+                textColor: AppColors.textDark,
+                iconBgColor: Colors.black.withOpacity(0.05),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TeacherQuestionManagementScreen()),
                   );
                 },
               ),

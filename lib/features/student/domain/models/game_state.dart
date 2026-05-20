@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EncyclopediaCardData {
   final int id;
@@ -25,14 +26,16 @@ class EncyclopediaCardData {
 class LevelData {
   final int id;
   final String title;
+  final String biome;
   final bool isUnlocked;
 
-  LevelData({required this.id, required this.title, this.isUnlocked = false});
+  LevelData({required this.id, required this.title, this.biome = '', this.isUnlocked = false});
 
-  Map<String, dynamic> toJson() => {'id': id, 'title': title, 'isUnlocked': isUnlocked};
+  Map<String, dynamic> toJson() => {'id': id, 'title': title, 'biome': biome, 'isUnlocked': isUnlocked};
   factory LevelData.fromJson(Map<String, dynamic> json) => LevelData(
         id: json['id'],
         title: json['title'],
+        biome: json['biome'] ?? json['title'], // Retrocompatibilidad
         isUnlocked: json['isUnlocked'] ?? false,
       );
 }
@@ -154,12 +157,12 @@ class GameState {
 
   void _initDefaultLevels() {
     levels.value = [
-      LevelData(id: 0, title: 'Ciudad', isUnlocked: true),
-      LevelData(id: 1, title: 'Manglar', isUnlocked: false),
-      LevelData(id: 2, title: 'Arrecife', isUnlocked: false),
-      LevelData(id: 3, title: 'Bosque', isUnlocked: false),
-      LevelData(id: 4, title: 'Selva', isUnlocked: false),
-      LevelData(id: 5, title: 'Desierto', isUnlocked: false),
+      LevelData(id: 0, title: 'Nivel 1', biome: 'Ciudad', isUnlocked: true),
+      LevelData(id: 1, title: 'Nivel 1', biome: 'Manglar', isUnlocked: false),
+      LevelData(id: 2, title: 'Nivel 1', biome: 'Arrecife', isUnlocked: false),
+      LevelData(id: 3, title: 'Nivel 1', biome: 'Bosque', isUnlocked: false),
+      LevelData(id: 4, title: 'Nivel 1', biome: 'Selva', isUnlocked: false),
+      LevelData(id: 5, title: 'Nivel 1', biome: 'Desierto', isUnlocked: false),
     ];
     _saveLevels();
   }
@@ -189,16 +192,30 @@ class GameState {
     final newList = List<LevelData>.from(levels.value);
     final index = newList.indexWhere((l) => l.id == id);
     if (index != -1) {
-      newList[index] = LevelData(id: id, title: newList[index].title, isUnlocked: isUnlocked);
+      newList[index] = LevelData(id: id, title: newList[index].title, biome: newList[index].biome, isUnlocked: isUnlocked);
       levels.value = newList;
       _saveLevels();
     }
   }
 
-  void addLevel(String title) {
+  void addLevel(String title, {String biome = 'Bosque'}) {
     final newList = List<LevelData>.from(levels.value);
     final newId = newList.isEmpty ? 0 : newList.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
-    newList.add(LevelData(id: newId, title: title, isUnlocked: true));
+    newList.add(LevelData(id: newId, title: title, biome: biome, isUnlocked: true));
+    levels.value = newList;
+    _saveLevels();
+  }
+
+  void deleteBiome(String biome) {
+    final newList = List<LevelData>.from(levels.value);
+    newList.removeWhere((l) => l.biome == biome);
+    levels.value = newList;
+    _saveLevels();
+  }
+
+  void deleteLevel(int levelId) {
+    final newList = List<LevelData>.from(levels.value);
+    newList.removeWhere((l) => l.id == levelId);
     levels.value = newList;
     _saveLevels();
   }
@@ -232,7 +249,9 @@ class GameState {
   void _recalculateTotalStars() {
     int total = 0;
     levelStars.value.values.forEach((stars) => total += stars);
-    totalStars.value = total;
+    // Restar estrellas gastadas en compras
+    final spent = _prefs?.getInt('spent_stars') ?? 0;
+    totalStars.value = total - spent;
   }
 
   // ---- Métodos Viejos (Mantenidos) ----
@@ -330,9 +349,38 @@ class GameState {
       final newPurchased = List<String>.from(purchasedRewards.value)..add(rewardId);
       purchasedRewards.value = newPurchased;
       _prefs?.setString('purchased_rewards', jsonEncode(newPurchased));
+
+      // Sincronizar compra a Supabase (fire-and-forget)
+      _syncPurchaseToSupabase(rewardId);
+
       return true;
     }
     return false;
+  }
+
+  /// Escribe la compra en la tabla purchased_rewards de Supabase.
+  Future<void> _syncPurchaseToSupabase(String rewardId) async {
+    try {
+      final client = Supabase.instance.client;
+      // Obtener el student_id del perfil actual
+      final name = playerName.value;
+      final profileResult = await client
+          .from('profiles')
+          .select('id')
+          .eq('name', name)
+          .eq('role', 'student')
+          .limit(1)
+          .maybeSingle();
+
+      if (profileResult != null) {
+        await client.from('purchased_rewards').upsert({
+          'student_id': profileResult['id'],
+          'reward_id': rewardId,
+        }, onConflict: 'student_id,reward_id');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error sincronizando compra a Supabase: $e');
+    }
   }
 
   bool isRewardPurchased(String rewardId) {
@@ -366,14 +414,154 @@ class GameState {
 
     // Reiniciar niveles: solo el primero desbloqueado
     final defaultLevels = [
-      LevelData(id: 0, title: 'Ciudad', isUnlocked: true),
-      LevelData(id: 1, title: 'Manglar', isUnlocked: false),
-      LevelData(id: 2, title: 'Arrecife', isUnlocked: false),
-      LevelData(id: 3, title: 'Bosque', isUnlocked: false),
-      LevelData(id: 4, title: 'Selva', isUnlocked: false),
-      LevelData(id: 5, title: 'Desierto', isUnlocked: false),
+      LevelData(id: 0, title: 'Nivel 1', biome: 'Ciudad', isUnlocked: true),
+      LevelData(id: 1, title: 'Nivel 1', biome: 'Manglar', isUnlocked: false),
+      LevelData(id: 2, title: 'Nivel 1', biome: 'Arrecife', isUnlocked: false),
+      LevelData(id: 3, title: 'Nivel 1', biome: 'Bosque', isUnlocked: false),
+      LevelData(id: 4, title: 'Nivel 1', biome: 'Selva', isUnlocked: false),
+      LevelData(id: 5, title: 'Nivel 1', biome: 'Desierto', isUnlocked: false),
     ];
     levels.value = defaultLevels;
     _saveLevels();
+  }
+
+  // ── Sincronización con Supabase ─────────────────────────────────
+  /// Carga datos reales del alumno desde la nube.
+  /// Se llama después del login para que todas las pantallas
+  /// (que leen de GameState) muestren datos correctos.
+  Future<void> syncFromSupabase(String studentId) async {
+    final client = Supabase.instance.client;
+
+    try {
+      // 1. Cargar niveles desde Supabase
+      final levelsResult = await client
+          .from('levels')
+          .select()
+          .eq('is_active', true)
+          .order('order_index');
+
+      if (levelsResult.isNotEmpty) {
+        // Obtener progreso para saber cuáles desbloquear
+        final progressResult = await client
+            .from('student_progress')
+            .select('level_id, stars_earned')
+            .eq('student_id', studentId);
+
+        final progressMap = <String, int>{};
+        for (final row in progressResult) {
+          progressMap[row['level_id'].toString()] = row['stars_earned'] as int;
+        }
+
+        final syncedLevels = <LevelData>[];
+        for (final json in levelsResult) {
+          final id = json['id'] as int;
+          final title = json['title'] as String? ?? 'Nivel $id';
+          final biome = json['biome'] as String? ?? title;
+          // El nivel 0 siempre desbloqueado; los demás si completaste el anterior
+          final isUnlocked = id == 0 ||
+              (progressMap.containsKey((id - 1).toString()) &&
+               (progressMap[(id - 1).toString()] ?? 0) > 0);
+          syncedLevels.add(LevelData(id: id, title: title, biome: biome, isUnlocked: isUnlocked));
+        }
+
+        levels.value = syncedLevels;
+        _saveLevels();
+
+        // Actualizar estrellas
+        levelStars.value = progressMap;
+        _prefs?.setString('level_stars', jsonEncode(progressMap));
+      }
+
+      // 2. Cargar recompensas del grupo del alumno
+      final membership = await client
+          .from('group_members')
+          .select('group_id')
+          .eq('student_id', studentId)
+          .limit(1)
+          .maybeSingle();
+
+      if (membership != null) {
+        final groupId = membership['group_id'];
+        final rewardsResult = await client
+            .from('rewards')
+            .select()
+            .eq('group_id', groupId);
+
+        final iconMap = <String, IconData>{
+          'card_giftcard': Icons.card_giftcard,
+          'star': Icons.star,
+          'videogame_asset': Icons.videogame_asset,
+          'color_lens': Icons.color_lens,
+          'face': Icons.face,
+          'lightbulb': Icons.lightbulb,
+          'wallpaper': Icons.wallpaper,
+          'crop_square': Icons.crop_square,
+        };
+
+        final colorMap = <String, int>{
+          '#8E44AD': 0xFF8E44AD,
+          '#E67E22': 0xFFE67E22,
+          '#27AE60': 0xFF27AE60,
+          '#2B9BF4': 0xFF2B9BF4,
+          '#F1C40F': 0xFFF1C40F,
+        };
+
+        if (rewardsResult.isNotEmpty) {
+          final syncedRewards = rewardsResult.map((json) {
+            final iconName = json['icon_name'] as String? ?? 'card_giftcard';
+            final colorHex = json['color_hex'] as String? ?? '#8E44AD';
+            return RewardData(
+              id: json['id'].toString(),
+              title: json['title'] as String? ?? '',
+              subtitle: json['subtitle'] as String? ?? '',
+              cost: json['cost'] as int? ?? 50,
+              colorValue: colorMap[colorHex] ?? 0xFF8E44AD,
+              iconCodePoint: (iconMap[iconName] ?? Icons.card_giftcard).codePoint,
+            );
+          }).toList();
+          rewards.value = syncedRewards;
+          _saveRewards();
+        }
+      }
+
+      // 3. Cargar premios comprados
+      final purchasedResult = await client
+          .from('purchased_rewards')
+          .select('reward_id')
+          .eq('student_id', studentId);
+
+      final purchasedIds = purchasedResult
+          .map<String>((r) => r['reward_id'].toString())
+          .toList();
+      purchasedRewards.value = purchasedIds;
+      _prefs?.setString('purchased_rewards', jsonEncode(purchasedIds));
+
+      // 4. Cargar corazones
+      final profileResult = await client
+          .from('profiles')
+          .select('hearts')
+          .eq('id', studentId)
+          .maybeSingle();
+
+      if (profileResult != null) {
+        hearts.value = profileResult['hearts'] as int? ?? 5;
+        _prefs?.setInt('hearts', hearts.value);
+      }
+
+      // 5. Recalcular estrellas totales
+      // Calcular gastadas a partir de premios comprados
+      int spent = 0;
+      for (final reward in rewards.value) {
+        if (purchasedIds.contains(reward.id)) {
+          spent += reward.cost;
+        }
+      }
+      _prefs?.setInt('spent_stars', spent);
+      _recalculateTotalStars();
+
+    } catch (e) {
+      // Si falla la sync, GameState sigue funcionando con datos locales
+      debugPrint('⚠️ Error sincronizando con Supabase: $e');
+    }
   }
 }

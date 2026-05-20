@@ -1,24 +1,66 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/providers/service_providers.dart';
 import '../../domain/models/game_state.dart';
 import 'student_main_screen.dart';
 
-class StudentLoginScreen extends StatefulWidget {
+class StudentLoginScreen extends ConsumerStatefulWidget {
   const StudentLoginScreen({super.key});
 
   @override
-  State<StudentLoginScreen> createState() => _StudentLoginScreenState();
+  ConsumerState<StudentLoginScreen> createState() => _StudentLoginScreenState();
 }
 
-class _StudentLoginScreenState extends State<StudentLoginScreen> {
+class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
   final _classCodeController = TextEditingController();
   final _nameController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _classCodeController.dispose();
     _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    setState(() => _isLoading = true);
+    try {
+      final authService = ref.read(authServiceProvider);
+      final studentService = ref.read(studentServiceProvider);
+
+      // Login con Supabase
+      final user = await authService.loginStudent(
+        groupCode: _classCodeController.text.trim().isEmpty
+            ? 'ECO-4A'
+            : _classCodeController.text.trim(),
+        name: _nameController.text.trim(),
+      );
+
+      // Configurar el servicio con el ID del alumno
+      studentService.setStudentId(user.id);
+
+      // Sincronizar GameState desde Supabase (niveles, premios, estrellas, etc.)
+      GameState.instance.setPlayerName(user.name);
+      await GameState.instance.syncFromSupabase(user.id);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const StudentMainScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al conectar: $e'),
+          backgroundColor: Colors.red.shade400,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -164,17 +206,9 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
-                              GameState.instance.setPlayerName(_nameController.text);
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const StudentMainScreen(),
-                                ),
-                              );
-                            },
+                            onPressed: _isLoading ? null : _handleLogin,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0D7A25), // Dark green
+                              backgroundColor: const Color(0xFF0D7A25),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
@@ -182,20 +216,29 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                               ),
                               elevation: 0,
                             ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '¡A explorar!',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        '¡A explorar!',
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.explore, size: 24),
+                                    ],
                                   ),
-                                ),
-                                SizedBox(width: 8),
-                                Icon(Icons.explore, size: 24),
-                              ],
-                            ),
                           ),
                         ),
                         const SizedBox(height: 24),
