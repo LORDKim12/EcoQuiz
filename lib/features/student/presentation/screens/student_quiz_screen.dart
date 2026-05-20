@@ -154,9 +154,13 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                 // Quiz finished, show level complete screen
                 int earned = 1;
                 final h = GameState.instance.hearts.value;
-                if (h == 5) earned = 3;
-                else if (h >= 3) earned = 2;
-                else if (h <= 0) earned = 0;
+                if (h == 5) {
+                  earned = 3;
+                } else if (h >= 3) {
+                  earned = 2;
+                } else if (h <= 0) {
+                  earned = 0;
+                }
 
                 Navigator.pushReplacement(
                   context,
@@ -251,7 +255,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE74C3C).withOpacity(0.15),
+                  color: const Color(0xFFE74C3C).withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
@@ -413,7 +417,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: timerColor.withOpacity(0.15),
+              color: timerColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: timerColor, width: 2),
             ),
@@ -517,7 +521,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                           borderRadius: BorderRadius.circular(32),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               offset: const Offset(0, -10),
                               blurRadius: 20,
                             ),
@@ -655,7 +659,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                     ? const Color(0xFF1B5E20)
                     : isWrong
                         ? const Color(0xFFB71C1C)
-                        : Colors.black.withOpacity(0.1),
+                        : Colors.black.withValues(alpha: 0.1),
                 width: (isCorrect || isWrong) ? 3 : 2,
               ),
             ),

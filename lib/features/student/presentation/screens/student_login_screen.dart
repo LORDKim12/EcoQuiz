@@ -94,7 +94,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFFDE8E1).withOpacity(0.5),
+                          color: const Color(0xFFFDE8E1).withValues(alpha: 0.5),
                           offset: const Offset(0, 8),
                           blurRadius: 16,
                         ),

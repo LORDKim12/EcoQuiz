@@ -123,7 +123,7 @@ class StudentProfileScreen extends StatelessWidget {
         border: Border.all(color: AppColors.studentPrimary, width: 2),
         boxShadow: [
           BoxShadow(
-            color: AppColors.studentPrimary.withOpacity(0.2),
+            color: AppColors.studentPrimary.withValues(alpha: 0.2),
             offset: const Offset(0, 6),
             blurRadius: 12,
           ),
@@ -163,7 +163,7 @@ class StudentProfileScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.studentPrimary.withOpacity(0.2),
+                    color: AppColors.studentPrimary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -194,7 +194,7 @@ class StudentProfileScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isCurrentUser ? progressColor.withOpacity(0.05) : Colors.white,
+        color: isCurrentUser ? progressColor.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isCurrentUser ? progressColor : Colors.grey.shade300,

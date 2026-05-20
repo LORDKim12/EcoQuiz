@@ -106,7 +106,7 @@ class TeacherProgressScreen extends StatelessWidget {
                   border: Border.all(color: Colors.grey.shade200, width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -188,9 +188,13 @@ class TeacherProgressScreen extends StatelessWidget {
                           barGroups: List.generate(_biomeData.length, (i) {
                             final d = _biomeData[i];
                             Color barColor;
-                            if (d.avgStars >= 2.5) barColor = const Color(0xFF27AE60);
-                            else if (d.avgStars >= 1.5) barColor = const Color(0xFFF39C12);
-                            else barColor = const Color(0xFFE74C3C);
+                            if (d.avgStars >= 2.5) {
+                              barColor = const Color(0xFF27AE60);
+                            } else if (d.avgStars >= 1.5) {
+                              barColor = const Color(0xFFF39C12);
+                            } else {
+                              barColor = const Color(0xFFE74C3C);
+                            }
 
                             return BarChartGroupData(
                               x: i,
@@ -270,7 +274,7 @@ class TeacherProgressScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.4), width: 1.5),
+          border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
         ),
         child: Column(
           children: [
@@ -286,9 +290,13 @@ class TeacherProgressScreen extends StatelessWidget {
 
   Widget _buildBiomeRow(_BiomeData d) {
     Color trackColor;
-    if (d.avgStars >= 2.5) trackColor = const Color(0xFF27AE60);
-    else if (d.avgStars >= 1.5) trackColor = const Color(0xFFF39C12);
-    else trackColor = const Color(0xFFE74C3C);
+    if (d.avgStars >= 2.5) {
+      trackColor = const Color(0xFF27AE60);
+    } else if (d.avgStars >= 1.5) {
+      trackColor = const Color(0xFFF39C12);
+    } else {
+      trackColor = const Color(0xFFE74C3C);
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -311,7 +319,7 @@ class TeacherProgressScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     child: LinearProgressIndicator(
                       value: d.avgStars / 3.0,
-                      backgroundColor: Colors.white.withOpacity(0.7),
+                      backgroundColor: Colors.white.withValues(alpha: 0.7),
                       valueColor: AlwaysStoppedAnimation<Color>(trackColor),
                       minHeight: 8,
                     ),
@@ -346,7 +354,7 @@ class TeacherProgressScreen extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.shade200, width: 1.5),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Row(
         children: [
@@ -355,7 +363,7 @@ class TeacherProgressScreen extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: rank <= 3 ? medalColors[rank - 1].withOpacity(0.2) : Colors.grey.shade100,
+              color: rank <= 3 ? medalColors[rank - 1].withValues(alpha: 0.2) : Colors.grey.shade100,
             ),
             child: Center(
               child: Text(medal, style: const TextStyle(fontSize: 18)),

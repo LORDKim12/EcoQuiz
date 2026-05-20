@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../student/domain/models/game_state.dart';
 
 class TeacherGroupManagementScreen extends StatefulWidget {
   const TeacherGroupManagementScreen({super.key});
@@ -9,19 +10,15 @@ class TeacherGroupManagementScreen extends StatefulWidget {
 }
 
 class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScreen> {
-  // Datos simulados para la UI
   String _selectedGroup = 'Grupo 4A';
   final List<String> _groups = ['Grupo 4A', 'Grupo 4B', 'Grupo 5A'];
 
-  final List<Map<String, String>> _students = [
-    {'name': 'Juan Pérez', 'username': 'juan.perez4A', 'avatar': '👦🏽'},
-    {'name': 'Ana López', 'username': 'ana.lopez4A', 'avatar': '👧🏻'},
-    {'name': 'Carlos Méndez', 'username': 'carlos.m4A', 'avatar': '👦🏻'},
-    {'name': 'Sofía Ramírez', 'username': 'sofia.r4A', 'avatar': '👧🏽'},
-  ];
-
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
+
+  /// Obtiene los alumnos del grupo seleccionado desde GameState.
+  List<StudentData> get _currentStudents =>
+      GameState.instance.getStudentsForGroup(_selectedGroup);
 
   void _showAddStudentDialog() {
     showDialog(
@@ -66,16 +63,14 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
             ElevatedButton(
               onPressed: () {
                 if (_nameController.text.isNotEmpty && _usernameController.text.isNotEmpty) {
-                  setState(() {
-                    _students.add({
-                      'name': _nameController.text.trim(),
-                      'username': _usernameController.text.trim(),
-                      'avatar': '🧑🏽', // Default avatar
-                    });
-                  });
+                  GameState.instance.addStudentsInBulk(
+                    [_nameController.text.trim()],
+                    _selectedGroup,
+                  );
                   _nameController.clear();
                   _usernameController.clear();
                   Navigator.pop(context);
+                  setState(() {}); // Refresh list
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Alumno agregado exitosamente')),
                   );
@@ -120,7 +115,6 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
                   setState(() {
                     _groups.add(groupController.text.trim());
                     _selectedGroup = groupController.text.trim();
-                    _students.clear(); // Limpiar alumnos simulados para el nuevo grupo
                   });
                   Navigator.pop(context);
                 }
@@ -137,15 +131,215 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════
+  // IMPORTACIÓN MASIVA DE ALUMNOS
+  // ═══════════════════════════════════════════════════════════════════
+  void _showBulkImportDialog() {
+    final TextEditingController bulkController = TextEditingController();
+    int detectedCount = 0;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFFFDF8F5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: const Row(
+                children: [
+                  Text('📋', style: TextStyle(fontSize: 24)),
+                  SizedBox(width: 8),
+                  Flexible(
+                    child: Text('Importar Lista de Alumnos',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.textBrown,
+                            fontSize: 18)),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 450,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pega los nombres de tus alumnos separados por comas, saltos de línea o punto y coma.',
+                      style: TextStyle(
+                          color: Colors.grey.shade700,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Grupo destino: $_selectedGroup',
+                      style: const TextStyle(
+                          color: Color(0xFF2B9BF4),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Campo de texto multilínea
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade300, width: 2),
+                      ),
+                      child: TextField(
+                        controller: bulkController,
+                        maxLines: 8,
+                        decoration: InputDecoration(
+                          hintText:
+                              'Juan Pérez\nAna López\nCarlos Méndez\nSofía Ramírez',
+                          hintStyle: TextStyle(color: Colors.grey.shade400),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.all(16),
+                        ),
+                        onChanged: (text) {
+                          final names = _parseNames(text);
+                          setDialogState(() => detectedCount = names.length);
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Contador de nombres detectados
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: detectedCount > 0
+                            ? const Color(0xFFD5F5E3)
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            detectedCount > 0 ? Icons.people : Icons.person_off,
+                            color: detectedCount > 0
+                                ? const Color(0xFF1E8449)
+                                : Colors.grey,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            detectedCount > 0
+                                ? '$detectedCount nombre${detectedCount > 1 ? 's' : ''} detectado${detectedCount > 1 ? 's' : ''}'
+                                : 'Ningún nombre detectado',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: detectedCount > 0
+                                  ? const Color(0xFF1E8449)
+                                  : Colors.grey,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton.icon(
+                  onPressed: detectedCount > 0
+                      ? () {
+                          final names = _parseNames(bulkController.text);
+                          final generated = GameState.instance
+                              .addStudentsInBulk(names, _selectedGroup);
+                          Navigator.pop(dialogContext);
+                          setState(() {}); // Refresh student list
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Text('✅', style: TextStyle(fontSize: 20)),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      'Se generaron ${generated.length} alumnos para $_selectedGroup',
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: const Color(0xFF27AE60),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      : null,
+                  icon: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+                  label: const Text('Generar Alumnos',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF27AE60),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Parsea un texto con nombres separados por comas, saltos de línea o punto y coma.
+  List<String> _parseNames(String text) {
+    return text
+        .split(RegExp(r'[,;\n]+'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final studentList = _currentStudents;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFDF8F5),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddStudentDialog,
-        backgroundColor: const Color(0xFF27AE60),
-        icon: const Icon(Icons.person_add, color: Colors.white),
-        label: const Text('Agregar Alumno', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Botón de importación masiva
+          FloatingActionButton.small(
+            heroTag: 'bulk_import',
+            onPressed: _showBulkImportDialog,
+            backgroundColor: const Color(0xFF2B9BF4),
+            child: const Icon(Icons.playlist_add, color: Colors.white),
+          ),
+          const SizedBox(height: 12),
+          // Botón de agregar alumno individual
+          FloatingActionButton.extended(
+            heroTag: 'add_student',
+            onPressed: _showAddStudentDialog,
+            backgroundColor: const Color(0xFF27AE60),
+            icon: const Icon(Icons.person_add, color: Colors.white),
+            label: const Text('Agregar Alumno', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -174,7 +368,7 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
                         Text(
                           'Administra tus grupos y alumnos.',
                           style: TextStyle(
-                            color: AppColors.textDark.withOpacity(0.8),
+                            color: AppColors.textDark.withValues(alpha: 0.8),
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
@@ -211,10 +405,7 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
                           ),
                           onChanged: (String? newValue) {
                             if (newValue != null) {
-                              setState(() {
-                                _selectedGroup = newValue;
-                                // En una app real, aquí cargaríamos los alumnos de la BD
-                              });
+                              setState(() => _selectedGroup = newValue);
                             }
                           },
                           items: _groups.map<DropdownMenuItem<String>>((String value) {
@@ -228,13 +419,28 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
                     ),
                   ),
                   const SizedBox(width: 12),
+                  // Botón de importar lista
+                  InkWell(
+                    onTap: _showBulkImportDialog,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF39C12).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFF39C12), width: 2),
+                      ),
+                      child: const Icon(Icons.playlist_add, color: Color(0xFFF39C12)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   InkWell(
                     onTap: _showAddGroupDialog,
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2B9BF4).withOpacity(0.1),
+                        color: const Color(0xFF2B9BF4).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: const Color(0xFF2B9BF4), width: 2),
                       ),
@@ -245,11 +451,40 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // Student count pill
+            if (studentList.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD5F5E3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.people, color: Color(0xFF1E8449), size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${studentList.length} alumno${studentList.length > 1 ? 's' : ''} en $_selectedGroup',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E8449),
+                            fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 8),
 
             // Student List
             Expanded(
-              child: _students.isEmpty
+              child: studentList.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -260,23 +495,36 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
                             'No hay alumnos en este grupo',
                             style: TextStyle(color: Colors.grey.shade600, fontSize: 16, fontWeight: FontWeight.bold),
                           ),
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: _showBulkImportDialog,
+                            icon: const Icon(Icons.playlist_add, color: Color(0xFF2B9BF4)),
+                            label: const Text('Importar lista de alumnos',
+                                style: TextStyle(
+                                    color: Color(0xFF2B9BF4),
+                                    fontWeight: FontWeight.bold)),
+                          ),
                         ],
                       ),
                     )
                   : ListView.separated(
                       physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8).copyWith(bottom: 80),
-                      itemCount: _students.length,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8).copyWith(bottom: 100),
+                      itemCount: studentList.length,
                       separatorBuilder: (context, index) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        final student = _students[index];
+                        final student = studentList[index];
+                        // Asignar avatares variados según índice
+                        final avatars = ['👦🏽', '👧🏻', '👦🏻', '👧🏽', '🧑🏽', '👩🏻', '👦🏼', '👧🏼'];
+                        final avatar = avatars[index % avatars.length];
+
                         return Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: Colors.grey.shade200, width: 2),
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4)),
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 4)),
                             ],
                           ),
                           child: ListTile(
@@ -290,33 +538,32 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
                                 border: Border.all(color: const Color(0xFFE67E22), width: 2),
                               ),
                               child: Center(
-                                child: Text(student['avatar']!, style: const TextStyle(fontSize: 24)),
+                                child: Text(avatar, style: const TextStyle(fontSize: 24)),
                               ),
                             ),
                             title: Text(
-                              student['name']!,
+                              student.name,
                               style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark, fontSize: 16),
                             ),
-                            subtitle: Text(
-                              'Usuario: ${student['username']}',
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit_outlined, color: Colors.blue),
-                                  onPressed: () {},
+                                Text(
+                                  'Usuario: ${student.username}',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                  onPressed: () {
-                                    setState(() {
-                                      _students.removeAt(index);
-                                    });
-                                  },
+                                Text(
+                                  'Contraseña: ${student.password}',
+                                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                                 ),
                               ],
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              onPressed: () {
+                                GameState.instance.removeStudent(student.username);
+                                setState(() {});
+                              },
                             ),
                           ),
                         );

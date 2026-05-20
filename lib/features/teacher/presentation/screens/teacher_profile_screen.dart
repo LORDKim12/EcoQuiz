@@ -82,7 +82,7 @@ class TeacherProfileScreen extends StatelessWidget {
                 icon: Icons.bar_chart,
                 bgColor: const Color(0xFFFFDAB9), // Peach color
                 textColor: AppColors.textDark,
-                iconBgColor: Colors.black.withOpacity(0.05),
+                iconBgColor: Colors.black.withValues(alpha: 0.05),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -96,7 +96,7 @@ class TeacherProfileScreen extends StatelessWidget {
                 icon: Icons.card_giftcard,
                 bgColor: const Color(0xFFD6EAF8), // Light blue
                 textColor: AppColors.textDark,
-                iconBgColor: Colors.black.withOpacity(0.05),
+                iconBgColor: Colors.black.withValues(alpha: 0.05),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -110,7 +110,7 @@ class TeacherProfileScreen extends StatelessWidget {
                 icon: Icons.group_add,
                 bgColor: const Color(0xFFE8DAEF), // Light purple
                 textColor: AppColors.textDark,
-                iconBgColor: Colors.black.withOpacity(0.05),
+                iconBgColor: Colors.black.withValues(alpha: 0.05),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -171,7 +171,7 @@ class TeacherProfileScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: bgColor.withOpacity(0.4),
+            color: bgColor.withValues(alpha: 0.4),
             offset: const Offset(0, 6),
             blurRadius: 12,
           ),
@@ -195,7 +195,7 @@ class TeacherProfileScreen extends StatelessWidget {
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: textColor.withOpacity(0.8),
+                    color: textColor.withValues(alpha: 0.8),
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2,
                     fontSize: 12,
@@ -244,7 +244,7 @@ class TeacherProfileScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               offset: const Offset(0, 4),
               blurRadius: 8,
             ),

@@ -3,7 +3,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../domain/models/game_state.dart';
 import '../widgets/encyclopedia_card.dart';
 import '../widgets/settings_bottom_sheet.dart';
-import 'student_level_complete_screen.dart';
 
 class StudentJournalScreen extends StatefulWidget {
   const StudentJournalScreen({super.key});
@@ -82,7 +81,7 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textBrown.withOpacity(0.8),
+                                color: AppColors.textBrown.withValues(alpha: 0.8),
                                 letterSpacing: 1.2,
                               ),
                             ),
@@ -169,7 +168,7 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: const Color(0xFF0F5132).withOpacity(0.5),
+                    color: const Color(0xFF0F5132).withValues(alpha: 0.5),
                     offset: const Offset(0, 4),
                   )
                 ]

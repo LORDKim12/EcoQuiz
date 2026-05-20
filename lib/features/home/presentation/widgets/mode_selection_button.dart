@@ -36,7 +36,7 @@ class ModeSelectionButton extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: borderColor.withOpacity(0.5),
+              color: borderColor.withValues(alpha: 0.5),
               offset: const Offset(0, 8),
               blurRadius: 0,
             ),
@@ -70,7 +70,7 @@ class ModeSelectionButton extends StatelessWidget {
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: borderColor.withOpacity(0.8),
+                color: borderColor.withValues(alpha: 0.8),
                 fontWeight: FontWeight.w600,
               ),
             ),

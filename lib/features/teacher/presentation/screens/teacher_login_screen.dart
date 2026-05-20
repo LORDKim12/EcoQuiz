@@ -91,7 +91,7 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFD4E6F1).withOpacity(0.5),
+                          color: const Color(0xFFD4E6F1).withValues(alpha: 0.5),
                           offset: const Offset(0, 8),
                           blurRadius: 16,
                         ),

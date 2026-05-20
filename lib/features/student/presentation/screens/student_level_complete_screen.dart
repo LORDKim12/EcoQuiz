@@ -291,7 +291,7 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF7A8B7A).withOpacity(0.3),
+                                    color: const Color(0xFF7A8B7A).withValues(alpha: 0.3),
                                     blurRadius: 25,
                                     offset: const Offset(0, 12),
                                   ),
@@ -371,7 +371,7 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                                 elevation: 4,
-                                shadowColor: const Color(0xFF0F641B).withOpacity(0.4),
+                                shadowColor: const Color(0xFF0F641B).withValues(alpha: 0.4),
                               ),
                               child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -413,7 +413,7 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                                 elevation: 4,
-                                shadowColor: const Color(0xFF2B9BF4).withOpacity(0.4),
+                                shadowColor: const Color(0xFF2B9BF4).withValues(alpha: 0.4),
                               ),
                               child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,

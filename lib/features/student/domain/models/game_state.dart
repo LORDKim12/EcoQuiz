@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'quiz_model.dart';
 
 class EncyclopediaCardData {
   final int id;
@@ -26,14 +28,35 @@ class LevelData {
   final int id;
   final String title;
   final bool isUnlocked;
+  final List<QuizQuestion> questions;
+  final String? backgroundPath;
 
-  LevelData({required this.id, required this.title, this.isUnlocked = false});
+  LevelData({
+    required this.id,
+    required this.title,
+    this.isUnlocked = false,
+    this.questions = const [],
+    this.backgroundPath,
+  });
 
-  Map<String, dynamic> toJson() => {'id': id, 'title': title, 'isUnlocked': isUnlocked};
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'isUnlocked': isUnlocked,
+        'questions': questions.map((q) => q.toJson()).toList(),
+        'backgroundPath': backgroundPath,
+      };
+
   factory LevelData.fromJson(Map<String, dynamic> json) => LevelData(
         id: json['id'],
         title: json['title'],
         isUnlocked: json['isUnlocked'] ?? false,
+        questions: json['questions'] != null
+            ? (json['questions'] as List)
+                .map((q) => QuizQuestion.fromJson(q))
+                .toList()
+            : [],
+        backgroundPath: json['backgroundPath'],
       );
 }
 
@@ -73,6 +96,35 @@ class RewardData {
       );
 }
 
+/// Modelo para representar un alumno generado.
+class StudentData {
+  final String name;
+  final String username;
+  final String password;
+  final String groupId;
+
+  StudentData({
+    required this.name,
+    required this.username,
+    required this.password,
+    required this.groupId,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'username': username,
+        'password': password,
+        'groupId': groupId,
+      };
+
+  factory StudentData.fromJson(Map<String, dynamic> json) => StudentData(
+        name: json['name'],
+        username: json['username'],
+        password: json['password'],
+        groupId: json['groupId'],
+      );
+}
+
 class GameState {
   static final GameState instance = GameState._internal();
   GameState._internal();
@@ -95,6 +147,9 @@ class GameState {
 
   // Premios comprados (IDs)
   final ValueNotifier<List<String>> purchasedRewards = ValueNotifier<List<String>>([]);
+
+  // Lista de alumnos registrados
+  final ValueNotifier<List<StudentData>> students = ValueNotifier<List<StudentData>>([]);
 
   SharedPreferences? _prefs;
 
@@ -150,6 +205,13 @@ class GameState {
     if (purchasedJson != null) {
       purchasedRewards.value = List<String>.from(jsonDecode(purchasedJson));
     }
+
+    // 8. Cargar alumnos registrados
+    final String? studentsJson = _prefs?.getString('registered_students');
+    if (studentsJson != null) {
+      final List<dynamic> decoded = jsonDecode(studentsJson);
+      students.value = decoded.map((e) => StudentData.fromJson(e)).toList();
+    }
   }
 
   void _initDefaultLevels() {
@@ -184,12 +246,24 @@ class GameState {
     _prefs?.setString('dynamic_rewards', jsonEncode(jsonList));
   }
 
+  void _saveStudents() {
+    final jsonList = students.value.map((e) => e.toJson()).toList();
+    _prefs?.setString('registered_students', jsonEncode(jsonList));
+  }
+
   // ---- Métodos de Niveles ----
   void setLevelUnlocked(int id, bool isUnlocked) {
     final newList = List<LevelData>.from(levels.value);
     final index = newList.indexWhere((l) => l.id == id);
     if (index != -1) {
-      newList[index] = LevelData(id: id, title: newList[index].title, isUnlocked: isUnlocked);
+      final old = newList[index];
+      newList[index] = LevelData(
+        id: id,
+        title: old.title,
+        isUnlocked: isUnlocked,
+        questions: old.questions,
+        backgroundPath: old.backgroundPath,
+      );
       levels.value = newList;
       _saveLevels();
     }
@@ -199,6 +273,21 @@ class GameState {
     final newList = List<LevelData>.from(levels.value);
     final newId = newList.isEmpty ? 0 : newList.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
     newList.add(LevelData(id: newId, title: title, isUnlocked: true));
+    levels.value = newList;
+    _saveLevels();
+  }
+
+  /// Crea un nuevo nivel con preguntas personalizadas y fondo opcional.
+  void addLevelWithQuestions(String title, String? backgroundPath, List<QuizQuestion> questions) {
+    final newList = List<LevelData>.from(levels.value);
+    final newId = newList.isEmpty ? 0 : newList.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
+    newList.add(LevelData(
+      id: newId,
+      title: title,
+      isUnlocked: true,
+      questions: questions,
+      backgroundPath: backgroundPath,
+    ));
     levels.value = newList;
     _saveLevels();
   }
@@ -231,7 +320,9 @@ class GameState {
 
   void _recalculateTotalStars() {
     int total = 0;
-    levelStars.value.values.forEach((stars) => total += stars);
+    for (var stars in levelStars.value.values) {
+      total += stars;
+    }
     totalStars.value = total;
   }
 
@@ -339,6 +430,54 @@ class GameState {
     return purchasedRewards.value.contains(rewardId);
   }
 
+  // ── Creación masiva de alumnos ─────────────────────────────────
+  /// Recibe una lista de nombres y genera automáticamente usuario y contraseña
+  /// para cada alumno, asignándolos al grupo indicado.
+  List<StudentData> addStudentsInBulk(List<String> studentNames, String groupId) {
+    final rng = Random();
+    final newStudents = <StudentData>[];
+
+    for (final name in studentNames) {
+      final trimmed = name.trim();
+      if (trimmed.isEmpty) continue;
+
+      // Generar username: primera letra + apellido + grupo (sin espacios)
+      final parts = trimmed.split(RegExp(r'\s+'));
+      final firstName = parts.first.toLowerCase();
+      final lastName = parts.length > 1 ? parts.last.toLowerCase() : '';
+      final groupSuffix = groupId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
+      final username = '${firstName[0]}$lastName$groupSuffix';
+
+      // Generar contraseña simple: eco + 4 dígitos aleatorios
+      final password = 'eco${rng.nextInt(9000) + 1000}';
+
+      newStudents.add(StudentData(
+        name: trimmed,
+        username: username,
+        password: password,
+        groupId: groupId,
+      ));
+    }
+
+    final updatedList = List<StudentData>.from(students.value)..addAll(newStudents);
+    students.value = updatedList;
+    _saveStudents();
+    return newStudents;
+  }
+
+  /// Obtiene los alumnos de un grupo específico.
+  List<StudentData> getStudentsForGroup(String groupId) {
+    return students.value.where((s) => s.groupId == groupId).toList();
+  }
+
+  /// Elimina un alumno por su username.
+  void removeStudent(String username) {
+    final newList = List<StudentData>.from(students.value)
+      ..removeWhere((s) => s.username == username);
+    students.value = newList;
+    _saveStudents();
+  }
+
   // ── Reiniciar todo el progreso ─────────────────────────────────
   /// Limpia todas las tarjetas, estrellas, niveles y restaura corazones.
   /// Útil para la demo (reiniciar entre alumnos).
@@ -364,7 +503,7 @@ class GameState {
     playerName.value = 'Explorador';
     _prefs?.setString('player_name', 'Explorador');
 
-    // Reiniciar niveles: solo el primero desbloqueado
+    // Reiniciar niveles: solo el primero desbloqueado, preservando niveles personalizados
     final defaultLevels = [
       LevelData(id: 0, title: 'Ciudad', isUnlocked: true),
       LevelData(id: 1, title: 'Manglar', isUnlocked: false),
@@ -373,7 +512,18 @@ class GameState {
       LevelData(id: 4, title: 'Selva', isUnlocked: false),
       LevelData(id: 5, title: 'Desierto', isUnlocked: false),
     ];
-    levels.value = defaultLevels;
+    // Preservar niveles personalizados del profesor (id > 5)
+    final customLevels = levels.value
+        .where((l) => l.id > 5)
+        .map((l) => LevelData(
+              id: l.id,
+              title: l.title,
+              isUnlocked: false,
+              questions: l.questions,
+              backgroundPath: l.backgroundPath,
+            ))
+        .toList();
+    levels.value = [...defaultLevels, ...customLevels];
     _saveLevels();
   }
 }

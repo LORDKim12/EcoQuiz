@@ -25,32 +25,58 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         preferredSize: const Size.fromHeight(70),
         child: _buildCustomAppBar(context),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [
-              Color(0xFFE67E22), // Desert orange
-              Color(0xFFF1C40F), // Sand yellow
-              Color(0xFF27AE60), // Jungle green
-              Color(0xFF1E8449), // Deep jungle
-            ],
-            stops: [0.0, 0.3, 0.6, 1.0],
-          ),
-        ),
-        child: ValueListenableBuilder<List<LevelData>>(
+      body: ValueListenableBuilder<List<LevelData>>(
           valueListenable: GameState.instance.levels,
           builder: (context, levels, child) {
             final int highestUnlockedIndex = levels.lastIndexWhere((l) => l.isUnlocked);
             
-            return ListView.builder(
+            // Determinar si el nivel actual tiene un fondo personalizado
+            String? customBg;
+            if (highestUnlockedIndex >= 0) {
+              customBg = levels[highestUnlockedIndex].backgroundPath;
+            }
+
+            return Stack(
+              children: [
+                // Capa de fondo: imagen personalizada o gradiente por defecto
+                if (customBg != null && customBg.isNotEmpty)
+                  Positioned.fill(
+                    child: Image.asset(
+                      customBg,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => _buildDefaultGradient(),
+                    ),
+                  )
+                else
+                  Positioned.fill(child: _buildDefaultGradient()),
+                
+                // Overlay semi-transparente para legibilidad
+                if (customBg != null && customBg.isNotEmpty)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.4),
+                            Colors.black.withValues(alpha: 0.15),
+                            Colors.black.withValues(alpha: 0.4),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Contenido del mapa
+                ListView.builder(
               controller: _scrollController,
               reverse: true, // Empieza desde abajo
               padding: const EdgeInsets.only(top: 120, bottom: 80),
               itemCount: levels.length,
               itemBuilder: (context, index) {
                 final level = levels[index];
+
                 
                 LevelStatus status = level.isUnlocked ? LevelStatus.completed : LevelStatus.locked;
                 int stars = 0;
@@ -136,7 +162,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                               child: Image.asset(
                                 'assets/images/eco_ajolote_mascot.png',
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(color: Colors.pink.shade200),
+                                errorBuilder: (_, _, _) => Container(color: Colors.pink.shade200),
                               ),
                             ),
                           ),
@@ -145,8 +171,27 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                   ),
                 );
               },
-            );
+            ),
+              ], // End of Stack children
+            ); // End of Stack
           },
+        ),
+    );
+  }
+
+  Widget _buildDefaultGradient() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            Color(0xFFE67E22), // Desert orange
+            Color(0xFFF1C40F), // Sand yellow
+            Color(0xFF27AE60), // Jungle green
+            Color(0xFF1E8449), // Deep jungle
+          ],
+          stops: [0.0, 0.3, 0.6, 1.0],
         ),
       ),
     );
@@ -156,9 +201,9 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
     return Container(
       padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, left: 16, right: 16, bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.backgroundLight.withOpacity(0.95),
+        color: AppColors.backgroundLight.withValues(alpha: 0.95),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
       child: Row(
@@ -262,7 +307,7 @@ class _PathPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFFAE5D3).withOpacity(0.5)
+      ..color = const Color(0xFFFAE5D3).withValues(alpha: 0.5)
       ..strokeWidth = 8
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;

@@ -1,4 +1,5 @@
 import '../models/quiz_model.dart';
+import '../models/game_state.dart';
 
 /// Banco de preguntas centralizado para todos los biomas.
 /// Cada bioma tiene 5 preguntas educativas sobre ecosistemas de México.
@@ -11,6 +12,8 @@ class QuestionBank {
   static const String _foxImage = 'assets/images/quiz_fox_1778463541718.png';
 
   /// Devuelve las preguntas para un bioma dado por su ID.
+  /// Los biomas 0-5 son los originales. Para IDs mayores, se buscan las
+  /// preguntas personalizadas del profesor en GameState.
   static List<QuizQuestion> getForBiome(int biomeId) {
     switch (biomeId) {
       case 0:
@@ -26,9 +29,22 @@ class QuestionBank {
       case 5:
         return _desiertoQuestions;
       default:
-        return _genericQuestions(biomeId);
+        // Buscar preguntas personalizadas del profesor
+        return _getCustomOrGeneric(biomeId);
     }
   }
+
+  /// Busca las preguntas del nivel personalizado en GameState.
+  /// Si el profesor no creó preguntas, devuelve las genéricas.
+  static List<QuizQuestion> _getCustomOrGeneric(int biomeId) {
+    final levels = GameState.instance.levels.value;
+    final matchIndex = levels.indexWhere((l) => l.id == biomeId);
+    if (matchIndex != -1 && levels[matchIndex].questions.isNotEmpty) {
+      return levels[matchIndex].questions;
+    }
+    return _genericQuestions(biomeId);
+  }
+
 
   // ── Bioma 0: Ciudad y Medio Ambiente ──────────────────────────────
   static final List<QuizQuestion> _ciudadQuestions = [

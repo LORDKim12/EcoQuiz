@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../student/domain/models/game_state.dart';
+import 'teacher_question_management_screen.dart';
 
 class TeacherLevelManagementScreen extends StatefulWidget {
   const TeacherLevelManagementScreen({super.key});
@@ -10,50 +11,19 @@ class TeacherLevelManagementScreen extends StatefulWidget {
 }
 
 class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScreen> {
-  final TextEditingController _titleController = TextEditingController();
-
-  void _showAddLevelDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Agregar Nuevo Nivel', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: TextField(
-            controller: _titleController,
-            decoration: const InputDecoration(
-              hintText: 'Nombre del Bioma (ej. Tundra)',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (_titleController.text.isNotEmpty) {
-                  GameState.instance.addLevel(_titleController.text.trim());
-                  _titleController.clear();
-                  Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2B9BF4)),
-              child: const Text('Guardar', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFDF8F5),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddLevelDialog,
+        onPressed: () {
+          // Navegar a la pantalla de creación de nivel con preguntas
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const TeacherQuestionManagementScreen()),
+          );
+        },
         backgroundColor: const Color(0xFF2B9BF4),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Nuevo Nivel', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -84,9 +54,9 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Controla y crea niveles.',
+                          'Controla y crea niveles con preguntas.',
                           style: TextStyle(
-                            color: AppColors.textDark.withOpacity(0.8),
+                            color: AppColors.textDark.withValues(alpha: 0.8),
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
@@ -103,15 +73,13 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
               child: ValueListenableBuilder<List<LevelData>>(
                 valueListenable: GameState.instance.levels,
                 builder: (context, levels, child) {
-                  // Mostrar en orden reverso para que el más nuevo salga hasta arriba si se quiere,
-                  // o mostrar en orden ascendente (0 a N).
                   return ListView.separated(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8).copyWith(bottom: 80),
                     itemCount: levels.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    separatorBuilder: (_, _) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {
-                      // Vamos a mostrar del último al primero
+                      // Mostrar del último al primero
                       final level = levels[levels.length - 1 - index];
                       return _buildZoneCard(level);
                     },
@@ -127,8 +95,10 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
 
   Widget _buildZoneCard(LevelData level) {
     final isUnlocked = level.isUnlocked;
+    final hasCustomQuestions = level.questions.isNotEmpty;
+    final hasBackground = level.backgroundPath != null;
     
-    // Asignar colores aleatorios o predefinidos basados en ID
+    // Asignar colores basados en ID
     final colors = [
       const Color(0xFFFDE8E1), const Color(0xFF5ABF5A), 
       const Color(0xFF98FB98), const Color(0xFFD6EAF8), 
@@ -144,7 +114,7 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
         border: Border.all(color: Colors.grey.shade300, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             offset: const Offset(0, 4),
             blurRadius: 10,
           ),
@@ -157,10 +127,12 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.terrain, color: AppColors.textBrown.withOpacity(0.7), size: 28),
+              child: hasBackground
+                  ? const Icon(Icons.image, color: Color(0xFF2B9BF4), size: 28)
+                  : Icon(Icons.terrain, color: AppColors.textBrown.withValues(alpha: 0.7), size: 28),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -176,13 +148,57 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    isUnlocked ? 'Activo para alumnos' : 'Bloqueado',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isUnlocked ? const Color(0xFF1E8449) : Colors.red.shade700,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        isUnlocked ? 'Activo' : 'Bloqueado',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isUnlocked ? const Color(0xFF1E8449) : Colors.red.shade700,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (hasCustomQuestions) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF39C12).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${level.questions.length} preguntas',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFD35400),
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (!hasCustomQuestions && level.id <= 5) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF27AE60).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'Bioma original',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E8449),
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (hasBackground) ...[
+                        const SizedBox(width: 6),
+                        const Text('🖼️', style: TextStyle(fontSize: 14)),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -190,8 +206,8 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
             // Custom Switch
             Switch(
               value: isUnlocked,
-              activeColor: Colors.white,
-              activeTrackColor: const Color(0xFF27AE60), // Green when active
+              activeThumbColor: Colors.white,
+              activeTrackColor: const Color(0xFF27AE60),
               inactiveThumbColor: Colors.white,
               inactiveTrackColor: Colors.grey.shade400,
               onChanged: (val) {

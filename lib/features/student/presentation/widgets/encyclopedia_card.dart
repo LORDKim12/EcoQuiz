@@ -30,7 +30,7 @@ class EncyclopediaCard extends StatelessWidget {
         border: Border.all(color: themeColor, width: 3),
         boxShadow: [
           BoxShadow(
-            color: themeColor.withOpacity(0.3),
+            color: themeColor.withValues(alpha: 0.3),
             offset: const Offset(0, 4),
             blurRadius: 8,
           ),
@@ -51,7 +51,7 @@ class EncyclopediaCard extends StatelessWidget {
                     imagePath,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade300),
+                    errorBuilder: (_, _, _) => Container(color: Colors.grey.shade300),
                   ),
                 ),
                 // Number Pill
@@ -145,7 +145,7 @@ class LockedEncyclopediaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFDE8E1).withOpacity(0.5), // Light pinkish
+        color: const Color(0xFFFDE8E1).withValues(alpha: 0.5), // Light pinkish
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: Colors.grey.shade300,
@@ -169,7 +169,7 @@ class LockedEncyclopediaCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 60, // Reduced from 80
                   fontWeight: FontWeight.w900,
-                  color: Colors.green.shade200.withOpacity(0.5),
+                  color: Colors.green.shade200.withValues(alpha: 0.5),
                 ),
               ),
               const SizedBox(height: 8),
@@ -252,7 +252,7 @@ class CardTag extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: textColor.withOpacity(0.5)),
+        border: Border.all(color: textColor.withValues(alpha: 0.5)),
       ),
       child: Text(
         label,

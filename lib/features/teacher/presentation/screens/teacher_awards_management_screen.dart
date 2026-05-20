@@ -118,7 +118,7 @@ class _TeacherAwardsManagementScreenState extends State<TeacherAwardsManagementS
                         Text(
                           'Agrega o elimina los premios de la tienda.',
                           style: TextStyle(
-                            color: AppColors.textDark.withOpacity(0.8),
+                            color: AppColors.textDark.withValues(alpha: 0.8),
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
@@ -141,7 +141,7 @@ class _TeacherAwardsManagementScreenState extends State<TeacherAwardsManagementS
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                     itemCount: rewards.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    separatorBuilder: (_, _) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final reward = rewards[index];
                       return Container(
@@ -153,7 +153,7 @@ class _TeacherAwardsManagementScreenState extends State<TeacherAwardsManagementS
                         child: ListTile(
                           contentPadding: const EdgeInsets.all(16),
                           leading: CircleAvatar(
-                            backgroundColor: Color(reward.colorValue).withOpacity(0.2),
+                            backgroundColor: Color(reward.colorValue).withValues(alpha: 0.2),
                             child: Icon(IconData(reward.iconCodePoint, fontFamily: 'MaterialIcons'), color: Color(reward.colorValue)),
                           ),
                           title: Text(reward.title, style: const TextStyle(fontWeight: FontWeight.bold)),
