@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/student/domain/models/game_state.dart';
@@ -9,17 +11,24 @@ import 'features/student/domain/repositories/database_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
   final repository = await SharedPreferencesRepository.init();
   final gameState = GameState(repository);
   await gameState.init();
 
+  // ── Supabase ─────────────────────────────────────────────────────────
+  await Supabase.initialize(
+    url: 'https://jsvwxceighiqslgkygow.supabase.co',
+    anonKey: 'sb_publishable_jzMj4HyMNsv-EfPbPmwqsg_dH-0XveR',
+  );
+
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: gameState),
-      ],
-      child: const EcoQuizApp(),
+    ProviderScope(
+      child: MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: gameState),
+        ],
+        child: const EcoQuizApp(),
+      ),
     ),
   );
 }

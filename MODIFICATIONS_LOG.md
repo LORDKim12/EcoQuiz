@@ -1,7 +1,7 @@
 # EcoQuiz — Registro de Modificaciones para Agentes de IA
 
-> **Última actualización:** 14 de mayo de 2026  
-> **Versión:** 1.0.0 (Demo)  
+> **Última actualización:** 19 de mayo de 2026  
+> **Versión:** 1.1.0 (Pre-BD)  
 > **Propósito de este archivo:** Dar contexto completo a cualquier agente de IA que trabaje con este código.
 
 ---
@@ -19,31 +19,50 @@
 
 ## 🏗️ Arquitectura
 
-### Patrón de estado
-- **Singleton `GameState`** (`lib/features/student/domain/models/game_state.dart`)
-- Usa `ValueNotifier<T>` para reactividad (no Provider/Riverpod — decisión consciente para la demo)
-- Persistencia con `SharedPreferences`
+### Patrón de estado (en migración)
+- **Legacy:** Singleton `GameState` con `ValueNotifier<T>` — aún activo en las pantallas
+- **Nuevo:** `flutter_riverpod` + **Repository Pattern** con interfaces de servicio
+- Persistencia: `SharedPreferences` (local) → preparado para Supabase (producción)
 
 ### Estructura de carpetas
 ```
 lib/
 ├── core/
-│   ├── constants/app_colors.dart    # Paleta de colores centralizada
-│   └── theme/app_theme.dart         # Tema Material con Google Fonts (Nunito)
+│   ├── constants/app_colors.dart        # Paleta de colores centralizada
+│   ├── theme/app_theme.dart             # Tema Material con Google Fonts (Nunito)
+│   ├── models/                          # ← NUEVO: Modelos puros (sin Flutter)
+│   │   ├── models.dart                  # Barrel file
+│   │   ├── user_model.dart
+│   │   ├── group_model.dart
+│   │   ├── level_model.dart
+│   │   ├── question_model.dart
+│   │   ├── reward_model.dart
+│   │   ├── quiz_attempt_model.dart
+│   │   └── encyclopedia_card_model.dart
+│   ├── services/                        # ← NUEVO: Interfaces (contratos)
+│   │   ├── auth_service.dart
+│   │   ├── student_service.dart
+│   │   └── teacher_service.dart
+│   ├── services/impl/                   # ← NUEVO: Implementaciones locales
+│   │   ├── local_auth_service.dart
+│   │   ├── local_student_service.dart
+│   │   └── local_teacher_service.dart
+│   └── providers/                       # ← NUEVO: Riverpod providers
+│       └── service_providers.dart
 ├── features/
-│   ├── home/                        # Pantalla de selección de rol
-│   ├── student/                     # Todo el flujo del alumno
+│   ├── home/                            # Pantalla de selección de rol
+│   ├── student/                         # Todo el flujo del alumno
 │   │   ├── domain/
 │   │   │   ├── models/
-│   │   │   │   ├── game_state.dart  # Singleton: estado global del juego
-│   │   │   │   └── quiz_model.dart  # Modelo de pregunta
+│   │   │   │   ├── game_state.dart      # LEGACY Singleton (en migración)
+│   │   │   │   └── quiz_model.dart      # LEGACY modelo de pregunta
 │   │   │   └── data/
-│   │   │       └── question_bank.dart # 30 preguntas (5 por bioma)
+│   │   │       └── question_bank.dart   # 30 preguntas (5 por bioma)
 │   │   └── presentation/
-│   │       ├── screens/             # Todas las pantallas del alumno
-│   │       └── widgets/             # Widgets reutilizables
-│   └── teacher/                     # Todo el flujo del maestro
-└── main.dart                        # Entry point + layout responsive
+│   │       ├── screens/                 # Todas las pantallas del alumno
+│   │       └── widgets/                 # Widgets reutilizables
+│   └── teacher/                         # Todo el flujo del maestro
+└── main.dart                            # Entry point + ProviderScope + layout responsive
 ```
 
 ---
@@ -188,7 +207,62 @@ lib/
 - `level_node_button.dart` — widget huérfano sin importar en ningún lado
 - `map_path_painter.dart` — painter huérfano sin importar en ningún lado
 
+### 14. Arquitectura para Base de Datos (Fase 1)
+**Archivos nuevos:** 16 archivos en `lib/core/`  
+**Qué se hizo:**
+
+#### Modelos puros (`lib/core/models/`)
+- `UserModel` — con rol (student/teacher), JSON serializable
+- `GroupModel` — grupo escolar con código de acceso (ej. ECO-4A)
+- `LevelModel` — nivel con bioma, orden, y estados
+- `QuestionModel` — pregunta con UUID, FK a nivel
+- `RewardModel` — premio con `iconName` (string) y `colorHex` (string), no `IconData`/`Color`
+- `QuizAttemptModel` — registro de cada respuesta (analytics)
+- `EncyclopediaCardModel` — tarjeta sin dependencias de Flutter
+
+#### Interfaces de servicio (`lib/core/services/`)
+- `AuthService` — login alumno, login maestro, logout, getCurrentUser
+- `StudentService` — niveles, estrellas, corazones, recompensas, enciclopedia, reset
+- `TeacherService` — grupos, alumnos, niveles, recompensas, progreso
+
+#### Implementaciones locales (`lib/core/services/impl/`)
+- `LocalAuthService` — auth con SharedPreferences (demo)
+- `LocalStudentService` — envuelve la lógica actual de GameState
+- `LocalTeacherService` — grupos/alumnos con SharedPreferences + mocks
+
+#### Riverpod providers (`lib/core/providers/`)
+- `authServiceProvider` → `LocalAuthService()`
+- `studentServiceProvider` → `LocalStudentService()`  
+- `teacherServiceProvider` → `LocalTeacherService()`
+- **Para migrar a Supabase:** solo se cambian estas 3 líneas
+
+#### main.dart
+- Envuelto en `ProviderScope` para habilitar Riverpod
+- `GameState.instance.init()` mantenido como legacy durante migración gradual
+
+### 15. Integración Supabase — Opción C: Full (Fase 2-3)
+**Archivos nuevos/modificados:** 10+ archivos  
+**Qué se hizo:**
+
+#### Backend Supabase
+- Conectado a proyecto Supabase con 10 tablas
+- `supabase_schema.sql` — esquema completo de la BD
+- `supabase_seed_questions.sql` — 30 preguntas educativas
+
+#### Implementaciones Supabase (`lib/core/services/impl/`)
+- `SupabaseAuthService` — login alumno con código de grupo + nombre
+- `SupabaseStudentService` — operaciones del alumno contra la BD
+- `SupabaseTeacherService` — gestión de grupos, alumnos, niveles, recompensas
+
+#### Pantallas migradas
+- `student_login_screen.dart` → auth async con Supabase
+- `teacher_login_screen.dart` → auth async con Supabase
+- `teacher_group_management_screen.dart` → CRUD real contra BD
+- `teacher_awards_management_screen.dart` → Premios en la BD
+- **NUEVA:** `teacher_question_management_screen.dart` — maestro gestiona preguntas
+
 ---
+
 
 ## ⚠️ Problemas Conocidos / Deuda Técnica
 
@@ -208,10 +282,11 @@ lib/
 | Paquete | Versión | Uso | Compatible Web |
 |---------|---------|-----|----------------|
 | `shared_preferences` | ^2.2.3 | Persistencia local | ✅ (usa localStorage) |
+| `flutter_riverpod` | ^3.3.1 | Estado + inyección de dependencias | ✅ |
 | `confetti` | ^0.7.0 | Partículas de celebración | ✅ |
 | `google_fonts` | ^6.2.1 | Tipografía Nunito | ✅ (descarga HTTP) |
 | `fl_chart` | ^0.70.2 | Gráficas en dashboard maestro | ✅ |
-| `provider` | ^6.1.2 | Declarado pero no usado activamente | ✅ |
+| `provider` | ^6.1.2 | Legacy, se puede remover | ✅ |
 
 ---
 
@@ -237,9 +312,107 @@ flutter run -d macos
 
 ## 💡 Decisiones de Diseño
 
-1. **Singleton sobre Provider:** Se eligió por velocidad de desarrollo para la demo. No escala bien, migrar post-demo.
-2. **30 preguntas (5 por bioma):** Suficiente para demo de ~5 minutos por nivel. Para producción, escalar a 10+ por nivel.
-3. **Animaciones con `TickerProviderStateMixin`:** Se usan AnimationControllers manuales en vez de paquetes como `lottie` para mantener las dependencias mínimas.
-4. **Temporizador de 30 segundos:** Equilibrio entre presión y accesibilidad para niños de 8-10 años.
-5. **Layout web como teléfono:** La app está diseñada para móvil; en web se muestra centrada como un teléfono para mantener la proporción y no romper layouts.
-6. **Emojis como decoración web:** Se usan emojis nativos (🌵🦎🐢) en vez de assets para evitar peso extra y mantener compatibilidad universal.
+1. **Repository Pattern:** Interfaces abstractas (`AuthService`, `StudentService`, `TeacherService`) con implementaciones locales. Para migrar a Supabase, solo se crean nuevas implementaciones y se cambian 3 líneas en `service_providers.dart`.
+2. **Riverpod sobre Provider:** Más testeable, con inyección de dependencias limpia y tipado fuerte.
+3. **Modelos puros sin Flutter:** `RewardModel` usa `String iconName` y `String colorHex` en vez de `IconData`/`Color`. Facilita serialización a JSON/BD.
+4. **GameState legacy convive:** No se eliminó para no romper las pantallas. Se eliminará cuando todas usen los nuevos providers.
+5. **30 preguntas (5 por bioma):** Suficiente para demo. Para producción, las preguntas vendrán de la tabla `questions` en Supabase.
+6. **Layout web como teléfono:** La app se muestra centrada como un teléfono para mantener la proporción en pantallas anchas.
+
+---
+
+## 🗺️ Próximos Pasos (Fase 2: Supabase)
+
+1. Migrar pantallas de `GameState.instance.xxx` → `ref.watch(studentServiceProvider).xxx`
+2. Crear `SupabaseAuthService`, `SupabaseStudentService`, `SupabaseTeacherService`
+3. Cambiar las 3 líneas en `service_providers.dart`
+4. Crear tablas en Supabase según el esquema ER del plan de migración
+5. Implementar Row Level Security (RLS) para que maestros solo vean sus grupos
+
+---
+
+## 🛠️ Actualizaciones Recientes: Arquitectura de Mundos (Niveles Anidados por Biomas)
+
+### Cambios en Estructura de Datos
+1. **LevelData (GameState):** Se agregó el campo `biome` (String) para asociar cada nivel a un bioma particular. Se implementó retrocompatibilidad en el `.fromJson()` usando el título del nivel como bioma por defecto para niveles legacy.
+
+### Vistas del Alumno
+1. **StudentMapScreen (Reingeniería):**
+   - Se migró de una sola lista vertical (`ListView.builder`) a un **Carrusel Horizontal (`PageView.builder`)**.
+   - Cada página del carrusel representa un Bioma, mostrando la imagen real generada por IA (Tundra, Selva, Desierto, Bosque) a pantalla completa en el fondo.
+   - El título del Bioma flota en la parte superior.
+   - Los niveles (`LevelData`) ahora se filtran por Bioma en cada página y se renderizan sobre la imagen en su layout de zigzag (con la mascota ubicándose en el último nivel desbloqueado).
+   - El usuario debe pasar niveles dentro del mismo bioma en el orden correspondiente.
+
+### Vistas del Maestro
+1. **TeacherLevelManagementScreen & Modal:**
+   - La pantalla de gestión de niveles ahora utiliza un Modal interactivo (`_AddLevelModal`) segregado en un archivo (y luego adjunto) `teacher_level_management_screen_modal.dart` (luego refactorizado en `teacher_level_management_screen.dart`).
+   - El modal contiene un selector en carrusel visual (`PageView`) de biomas que permite al maestro elegir gráficamente a qué mundo asignar el nuevo nivel.
+   - Al guardar, el nivel se guarda con su bioma correspondiente.
+2. **TeacherQuestionManagementScreen:**
+   - Se actualizó el texto del `FilterChip` (selector de nivel horizontal superior) para mostrar explícitamente el nombre del bioma y nivel, por ejemplo: `TUNDRA - Nivel 1`.
+   - Esto le da claridad al maestro para ubicar correctamente a qué sección (Bioma -> Nivel) está agregando las preguntas al banco local (Supabase).
+
+### Activos (Assets) Generados
+- Imágenes generadas mediante herramienta de IA (Text to Image) para ser usadas como texturas de mapas de biomas en pantalla completa:
+  - `biome_tundra.png`
+  - `biome_desert.png`
+  - `biome_jungle.png`
+  - `biome_forest.png`
+- (Las imágenes fueron movidas al folder `assets/images/` y se pueden utilizar libremente para el mapa).
+
+---
+
+## 🛠️ Actualizaciones Recientes: Biomas Dinámicos y Nuevos Fondos
+
+### Soporte a Nuevos Biomas y Assets
+- Se generaron 3 nuevas imágenes de fondo por IA: `biome_city.png` (Ciudad), `biome_mangrove.png` (Manglar) y `biome_reef.png` (Arrecife).
+- Se actualizó el mapa del alumno (`StudentMapScreen`) para soportar estos fondos. Al crear niveles asignados a "Ciudad", "Manglar" o "Arrecife", el carrusel renderizará automáticamente las imágenes correctas de fondo.
+
+### Gestión Dinámica de Biomas (Maestro)
+- En la pantalla `TeacherLevelManagementScreen`, el modal para crear niveles (`_AddLevelModal`) ahora recolecta dinámicamente cualquier bioma existente en el estado del juego (`GameState`). 
+- Si el maestro crea niveles en biomas no estándar, estos aparecerán automáticamente en el carrusel de opciones para ser seleccionados.
+- Se agregó una opción **"Otro (Nuevo)"** en el carrusel de selección, habilitando un campo de texto extra para que el maestro asigne libremente un nuevo nombre de bioma.
+
+### Eliminación de Biomas
+- Se agregó el botón (ícono de bote de basura rojo) en la pantalla `TeacherLevelManagementScreen` (esquina superior derecha).
+- Al presionarlo, el sistema pregunta qué bioma eliminar.
+- Al confirmar la eliminación, todos los niveles (y sus referencias) asociados a ese bioma se remueven del estado del juego (`deleteBiome` en `GameState`).
+
+### 16. Sincronización GameState ↔ Supabase (Bugfixes)
+**Problema:** Los premios canjeados por un alumno no se reflejaban en Supabase, y al cambiar de sesión (alumno→maestro), los datos se mezclaban.
+
+#### Correcciones implementadas:
+1. **`syncFromSupabase(studentId)`** — Nuevo método en `GameState` que carga niveles, premios, estrellas, corazones y compras desde Supabase al iniciar sesión. Ahora incluye el campo `biome`.
+2. **Student login** — Ahora llama `await GameState.instance.syncFromSupabase(user.id)` después del login para que todas las pantallas muestren datos del servidor.
+3. **`spendStars` → Supabase** — Al canjear un premio, ahora se escribe la compra en `purchased_rewards` de Supabase (fire-and-forget).
+4. **`_recalculateTotalStars`** — Corregido para restar las estrellas gastadas en compras, evitando que se "restauren" al recargar.
+5. **Campo `biome` en `LevelData`** — Todos los defaults, resets y syncs ahora usan el campo `biome` del usuario.
+6. **`teacher_question_management_screen`** — Corregido para usar `l.biome` en vez de `l.title.toLowerCase()` al crear `LevelModel`.
+
+---
+
+### 17. Rediseño UI Premium: Gestión de Mundos + Limpieza de Código
+
+#### UI Rediseñada (`teacher_level_management_screen.dart`)
+- **Cards de bioma con gradiente**: Cada bioma tiene colores, emoji e ícono temáticos (Ciudad=🏙️, Manglar=🌿, Arrecife=🐠, Bosque=🌲, Selva=🦜, Desierto=🏜️, Tundra=❄️).
+- **Swipe-to-delete**: Los niveles individuales se pueden eliminar deslizando a la izquierda (`Dismissible`).
+- **PopupMenu** en header de bioma para eliminar mundo completo.
+- **Diálogos estilizados**: Bordes redondeados (28px), iconos temáticos, colores consistentes con el bioma, campos con `filled: true`.
+- **Validación de biomas duplicados**: Al crear un bioma verifica que no exista ya.
+- **Nombre sugerido automático**: Al agregar nivel, sugiere "Nivel N+1".
+- **SnackBars premium**: Floating, con iconos y bordes redondeados.
+
+#### Código Muerto Eliminado
+- `teacherService` (sin usar) en `teacher_question_management_screen.dart`
+- `supabase` variable (sin usar) en `teacher_question_management_screen.dart`
+- `correctOption` variable (sin usar) en `teacher_question_management_screen.dart`
+- Import `teacher_level_management_screen` (sin usar) en `student_map_screen.dart`
+- `_scrollController` campo (sin usar) en `student_map_screen.dart`
+- Import `student_level_complete_screen` (sin usar) en `student_journal_screen.dart`
+- Imports de interfaces abstractas (sin usar) en `service_providers.dart`
+- Archivo `teacher_level_management_screen.dart.patch` eliminado
+
+#### Resultado
+- **0 errors**, **0 warnings** en `flutter analyze`
+- Build web exitoso ✓

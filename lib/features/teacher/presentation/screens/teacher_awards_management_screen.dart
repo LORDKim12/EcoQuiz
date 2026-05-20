@@ -1,22 +1,53 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/providers/service_providers.dart';
+import '../../../../core/models/models.dart';
 import '../../../student/domain/models/game_state.dart';
 
-class TeacherAwardsManagementScreen extends StatefulWidget {
+class TeacherAwardsManagementScreen extends ConsumerStatefulWidget {
   const TeacherAwardsManagementScreen({super.key});
 
   @override
-  State<TeacherAwardsManagementScreen> createState() => _TeacherAwardsManagementScreenState();
+  ConsumerState<TeacherAwardsManagementScreen> createState() => _TeacherAwardsManagementScreenState();
 }
 
-class _TeacherAwardsManagementScreenState extends State<TeacherAwardsManagementScreen> {
+class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsManagementScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _subtitleController = TextEditingController();
   final TextEditingController _costController = TextEditingController();
 
+  List<RewardModel> _rewards = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRewards();
+  }
+
+  Future<void> _loadRewards() async {
+    setState(() => _isLoading = true);
+    try {
+      final teacherService = ref.read(teacherServiceProvider);
+      _rewards = await teacherService.getRewards();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   void _showAddRewardDialog() {
+    _titleController.clear();
+    _subtitleController.clear();
+    _costController.clear();
     showDialog(
       context: context,
       builder: (context) {
@@ -51,26 +82,54 @@ class _TeacherAwardsManagementScreenState extends State<TeacherAwardsManagementS
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final cost = int.tryParse(_costController.text) ?? 50;
                 if (_titleController.text.isNotEmpty) {
-                  final icons = [Icons.card_giftcard, Icons.star, Icons.videogame_asset, Icons.color_lens];
-                  final colors = [0xFF8E44AD, 0xFFE67E22, 0xFF27AE60, 0xFF2B9BF4];
-                  
-                  final newReward = RewardData(
+                  final iconNames = ['card_giftcard', 'star', 'videogame_asset', 'color_lens'];
+                  final colorHexes = ['#8E44AD', '#E67E22', '#27AE60', '#2B9BF4'];
+                  final rand = Random();
+
+                  final newReward = RewardModel(
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     title: _titleController.text.trim(),
-                    subtitle: _subtitleController.text.trim().isEmpty ? 'Premio especial' : _subtitleController.text.trim(),
+                    subtitle: _subtitleController.text.trim().isEmpty
+                        ? 'Premio especial'
+                        : _subtitleController.text.trim(),
                     cost: cost,
-                    colorValue: colors[Random().nextInt(colors.length)],
-                    iconCodePoint: icons[Random().nextInt(icons.length)].codePoint,
+                    iconName: iconNames[rand.nextInt(iconNames.length)],
+                    colorHex: colorHexes[rand.nextInt(colorHexes.length)],
                   );
-                  
-                  context.read<GameState>().addReward(newReward);
-                  _titleController.clear();
-                  _subtitleController.clear();
-                  _costController.clear();
                   Navigator.pop(context);
+                  try {
+                    final teacherService = ref.read(teacherServiceProvider);
+                    await teacherService.addReward(newReward);
+
+                    // También sincronizar con GameState legacy
+                    context.read<GameState>().addReward(RewardData(
+                      id: newReward.id,
+                      title: newReward.title,
+                      subtitle: newReward.subtitle,
+                      cost: newReward.cost,
+                      colorValue: _hexToColor(newReward.colorHex),
+                      iconCodePoint: Icons.card_giftcard.codePoint,
+                    ));
+
+                    await _loadRewards();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✅ Premio agregado'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                      );
+                    }
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2B9BF4)),
@@ -81,6 +140,23 @@ class _TeacherAwardsManagementScreenState extends State<TeacherAwardsManagementS
       },
     );
   }
+
+  int _hexToColor(String hex) {
+    hex = hex.replaceAll('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    return int.parse(hex, radix: 16);
+  }
+
+  static const _iconMap = {
+    'card_giftcard': Icons.card_giftcard,
+    'star': Icons.star,
+    'videogame_asset': Icons.videogame_asset,
+    'color_lens': Icons.color_lens,
+    'face': Icons.face,
+    'lightbulb': Icons.lightbulb,
+    'wallpaper': Icons.wallpaper,
+    'crop_square': Icons.crop_square,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -131,46 +207,54 @@ class _TeacherAwardsManagementScreenState extends State<TeacherAwardsManagementS
               ),
             ),
             Expanded(
-              child: Consumer<GameState>(
-                builder: (context, gameState, child) {
-                  final rewards = gameState.rewards;
-                  if (rewards.isEmpty) {
-                    return const Center(child: Text('No hay premios registrados.'));
-                  }
-                  
-                  return ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    itemCount: rewards.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 16),
-                    itemBuilder: (context, index) {
-                      final reward = rewards[index];
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.grey.shade300, width: 2),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _rewards.isEmpty
+                      ? const Center(child: Text('No hay premios registrados.'))
+                      : ListView.separated(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                          itemCount: _rewards.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 16),
+                          itemBuilder: (context, index) {
+                            final reward = _rewards[index];
+                            final color = Color(_hexToColor(reward.colorHex));
+                            final icon = _iconMap[reward.iconName] ?? Icons.card_giftcard;
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: Colors.grey.shade300, width: 2),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(16),
+                                leading: CircleAvatar(
+                                  backgroundColor: color.withOpacity(0.2),
+                                  child: Icon(icon, color: color),
+                                ),
+                                title: Text(reward.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Text('${reward.subtitle} • ⭐️ ${reward.cost}'),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () async {
+                                    try {
+                                      final teacherService = ref.read(teacherServiceProvider);
+                                      await teacherService.removeReward(reward.id);
+                                      context.read<GameState>().removeReward(reward.id);
+                                      await _loadRewards();
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                                        );
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: CircleAvatar(
-                            backgroundColor: Color(reward.colorValue).withValues(alpha: 0.2),
-                            child: Icon(IconData(reward.iconCodePoint, fontFamily: 'MaterialIcons'), color: Color(reward.colorValue)),
-                          ),
-                          title: Text(reward.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('${reward.subtitle} • ⭐️ ${reward.cost}'),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
-                              context.read<GameState>().removeReward(reward.id);
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
             ),
           ],
         ),

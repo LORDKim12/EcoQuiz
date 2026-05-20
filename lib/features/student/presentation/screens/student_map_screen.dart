@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import '../../domain/data/question_bank.dart';
 import 'student_quiz_screen.dart';
-import '../../../teacher/presentation/screens/teacher_level_management_screen.dart';
 
 class StudentMapScreen extends StatefulWidget {
   final bool isTeacher;
@@ -16,7 +15,27 @@ class StudentMapScreen extends StatefulWidget {
 }
 
 class _StudentMapScreenState extends State<StudentMapScreen> {
-  final ScrollController _scrollController = ScrollController();
+
+  String _getBiomeImage(String title) {
+    final lower = title.toLowerCase();
+    if (lower.contains('tundra') || lower.contains('nieve') || lower.contains('hielo')) {
+      return 'assets/images/biome_tundra.png';
+    } else if (lower.contains('desierto') || lower.contains('arena')) {
+      return 'assets/images/biome_desert.png';
+    } else if (lower.contains('selva') || lower.contains('jungla')) {
+      return 'assets/images/biome_jungle.png';
+    } else if (lower.contains('bosque') || lower.contains('pradera')) {
+      return 'assets/images/biome_forest.png';
+    } else if (lower.contains('ciudad') || lower.contains('urbe')) {
+      return 'assets/images/biome_city.png';
+    } else if (lower.contains('manglar') || lower.contains('pantano')) {
+      return 'assets/images/biome_mangrove.png';
+    } else if (lower.contains('arrecife') || lower.contains('oceano') || lower.contains('mar')) {
+      return 'assets/images/biome_reef.png';
+    }
+    // Fallback: Forest
+    return 'assets/images/biome_forest.png';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,157 +45,162 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         preferredSize: const Size.fromHeight(70),
         child: _buildCustomAppBar(context),
       ),
-      body: Consumer<GameState>(
+      body: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E8449), // Fallback de color por si acaso
+        ),
+        child: Consumer<GameState>(
           builder: (context, gameState, child) {
             final levels = gameState.levels;
-            final int highestUnlockedIndex = levels.lastIndexWhere((l) => l.isUnlocked);
+            final biomes = levels.map((l) => l.biome).toSet().toList();
+            if (biomes.isEmpty) return const Center(child: Text('No hay biomas'));
             
-            // Determinar si el nivel actual tiene un fondo personalizado
-            String? customBg;
-            if (highestUnlockedIndex >= 0) {
-              customBg = levels[highestUnlockedIndex].backgroundPath;
-            }
-
-            return Stack(
-              children: [
-                // Capa de fondo: imagen personalizada o gradiente por defecto
-                if (customBg != null && customBg.isNotEmpty)
-                  Positioned.fill(
-                    child: Image.asset(
-                      customBg,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _buildDefaultGradient(),
-                    ),
-                  )
-                else
-                  Positioned.fill(child: _buildDefaultGradient()),
+            return PageView.builder(
+              itemCount: biomes.length,
+              itemBuilder: (context, index) {
+                final biome = biomes[index];
+                final biomeLevels = levels.where((l) => l.biome == biome).toList();
                 
-                // Overlay semi-transparente para legibilidad
-                if (customBg != null && customBg.isNotEmpty)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.4),
-                            Colors.black.withValues(alpha: 0.15),
-                            Colors.black.withValues(alpha: 0.4),
-                          ],
+                // Buscar el nivel más alto desbloqueado globalmente
+                final int highestUnlockedOverallIndex = levels.lastIndexWhere((l) => l.isUnlocked);
+                final highestUnlockedOverallLevel = highestUnlockedOverallIndex >= 0 ? levels[highestUnlockedOverallIndex] : null;
+                
+                return Stack(
+                  children: [
+                    // Fondo del Bioma
+                    Positioned.fill(
+                      child: Image.asset(
+                        _getBiomeImage(biome),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    // Título del Bioma flotante
+                    Positioned(
+                      top: 100,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            biome.toUpperCase(),
+                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    // Niveles dentro de este bioma
+                    Positioned.fill(
+                      child: ListView.builder(
+                        reverse: true, // Empieza desde abajo
+                        padding: const EdgeInsets.only(top: 180, bottom: 80),
+                        itemCount: biomeLevels.length,
+                        itemBuilder: (context, bIndex) {
+                          final level = biomeLevels[bIndex];
+                          
+                          LevelStatus status = level.isUnlocked ? LevelStatus.completed : LevelStatus.locked;
+                          int stars = 0;
+                          
+                          if (level.isUnlocked) {
+                            stars = gameState.levelStars[level.id.toString()] ?? 0;
+                          }
+                          
+                          if (highestUnlockedOverallLevel?.id == level.id && stars == 0) {
+                            status = LevelStatus.current;
+                          }
 
-                // Contenido del mapa
-                ListView.builder(
-              controller: _scrollController,
-              reverse: true, // Empieza desde abajo
-              padding: const EdgeInsets.only(top: 120, bottom: 80),
-              itemCount: levels.length,
-              itemBuilder: (context, index) {
-                final level = levels[index];
-
-                
-                LevelStatus status = level.isUnlocked ? LevelStatus.completed : LevelStatus.locked;
-                int stars = 0;
-                
-                if (level.isUnlocked) {
-                  // Obtain stars from GameState
-                  stars = gameState.levelStars[level.id.toString()] ?? 0;
-                }
-                
-                if (index == highestUnlockedIndex) {
-                  status = LevelStatus.current;
-                  stars = 0;
-                }
-
-                // Zigzag pattern
-                final isLeft = index % 2 == 0;
-                
-                return SizedBox(
-                  height: 140, // Height for each row
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Draw path line to the next node (except for the last one)
-                      if (index < levels.length - 1)
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _PathPainter(isLeftToRight: isLeft),
-                          ),
-                        ),
-                        
-                      // The Node
-                      Align(
-                        alignment: isLeft ? const Alignment(-0.5, 0) : const Alignment(0.5, 0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              level.title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            LevelNodeButton(
-                              levelNumber: level.id + 1,
-                              status: status,
-                              stars: stars,
-                              onTap: () {
-                                if (status != LevelStatus.locked) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => StudentQuizScreen(
-                                        questions: QuestionBank.getForBiome(level.id),
-                                        levelIndex: level.id,
+                          final isLeft = bIndex % 2 == 0;
+                          
+                          return SizedBox(
+                            height: 140, // Altura de cada fila
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                // Línea punteada
+                                if (bIndex < biomeLevels.length - 1)
+                                  Positioned.fill(
+                                    child: CustomPaint(
+                                      painter: _PathPainter(isLeftToRight: isLeft),
+                                    ),
+                                  ),
+                                  
+                                // Botón del Nivel
+                                Align(
+                                  alignment: isLeft ? const Alignment(-0.5, 0) : const Alignment(0.5, 0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        level.title,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      LevelNodeButton(
+                                        levelNumber: level.id + 1,
+                                        status: status,
+                                        stars: stars,
+                                        onTap: () {
+                                          if (status != LevelStatus.locked) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => StudentQuizScreen(
+                                                  questions: QuestionBank.getForBiome(level.id),
+                                                  levelIndex: level.id,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                
+                                // Mascota
+                                if (highestUnlockedOverallLevel?.id == level.id)
+                                  Positioned(
+                                    left: isLeft ? MediaQuery.of(context).size.width * 0.25 - 50 : MediaQuery.of(context).size.width * 0.75 - 50,
+                                    top: -20,
+                                    child: Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 3),
+                                        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
+                                      ),
+                                      child: ClipOval(
+                                        child: Image.asset(
+                                          'assets/images/eco_ajolote_mascot.png',
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Container(color: Colors.pink.shade200),
+                                        ),
                                       ),
                                     ),
-                                  );
-                                }
-                              },
+                                  ),
+                              ],
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                      
-                      // Mascot floating near current level
-                      if (index == highestUnlockedIndex)
-                        Positioned(
-                          left: isLeft ? MediaQuery.of(context).size.width * 0.25 - 50 : MediaQuery.of(context).size.width * 0.75 - 50,
-                          top: -20,
-                          child: Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 3),
-                              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
-                            ),
-                            child: ClipOval(
-                              child: Image.asset(
-                                'assets/images/eco_ajolote_mascot.png',
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => Container(color: Colors.pink.shade200),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                    ),
+                  ],
                 );
               },
-            ),
-              ], // End of Stack children
-            ); // End of Stack
+            );
           },
         ),
+      ),
     );
   }
 
@@ -275,23 +299,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               );
             },
           ),
-          if (widget.isTeacher) const SizedBox(width: 12),
-          // Settings Icon for Teacher
-          if (widget.isTeacher)
-            GestureDetector(
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherLevelManagementScreen()));
-              },
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: const Icon(Icons.settings, color: AppColors.textDark, size: 24),
-              ),
-            ),
         ],
       ),
     );
