@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../../student/domain/models/game_state.dart';
 
 class TeacherProgressScreen extends StatelessWidget {
@@ -78,9 +79,9 @@ class TeacherProgressScreen extends StatelessWidget {
                     bgColor: const Color(0xFFFEF9E7),
                   ),
                   const SizedBox(width: 12),
-                  ValueListenableBuilder<List<LevelData>>(
-                    valueListenable: GameState.instance.levels,
-                    builder: (context, levels, _) {
+                  Consumer<GameState>(
+                    builder: (context, gameState, _) {
+                      final levels = gameState.levels;
                       final unlocked = levels.where((l) => l.isUnlocked).length;
                       final total = levels.length;
                       return _buildStatPill(

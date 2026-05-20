@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import '../../domain/data/question_bank.dart';
 import 'student_quiz_screen.dart';
@@ -25,9 +26,9 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         preferredSize: const Size.fromHeight(70),
         child: _buildCustomAppBar(context),
       ),
-      body: ValueListenableBuilder<List<LevelData>>(
-          valueListenable: GameState.instance.levels,
-          builder: (context, levels, child) {
+      body: Consumer<GameState>(
+          builder: (context, gameState, child) {
+            final levels = gameState.levels;
             final int highestUnlockedIndex = levels.lastIndexWhere((l) => l.isUnlocked);
             
             // Determinar si el nivel actual tiene un fondo personalizado
@@ -83,7 +84,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                 
                 if (level.isUnlocked) {
                   // Obtain stars from GameState
-                  stars = GameState.instance.levelStars.value[level.id.toString()] ?? 0;
+                  stars = gameState.levelStars[level.id.toString()] ?? 0;
                 }
                 
                 if (index == highestUnlockedIndex) {
@@ -226,9 +227,9 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
           ),
           const Spacer(),
           // Hearts Counter Pill
-          ValueListenableBuilder<int>(
-            valueListenable: GameState.instance.hearts,
-            builder: (context, heartsCount, child) {
+          Consumer<GameState>(
+            builder: (context, gameState, child) {
+              final heartsCount = gameState.hearts;
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
@@ -251,9 +252,9 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
           ),
           const SizedBox(width: 8),
           // Star Counter Pill
-          ValueListenableBuilder<int>(
-            valueListenable: GameState.instance.totalStars,
-            builder: (context, stars, child) {
+          Consumer<GameState>(
+            builder: (context, gameState, child) {
+              final stars = gameState.totalStars;
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(

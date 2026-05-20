@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import 'student_main_screen.dart';
 
@@ -165,7 +166,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () {
-                              GameState.instance.setPlayerName(_nameController.text);
+                              context.read<GameState>().setPlayerName(_nameController.text);
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(

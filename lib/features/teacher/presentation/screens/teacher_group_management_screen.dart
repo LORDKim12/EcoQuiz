@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../../student/domain/models/game_state.dart';
 
 class TeacherGroupManagementScreen extends StatefulWidget {
@@ -16,9 +17,7 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
 
-  /// Obtiene los alumnos del grupo seleccionado desde GameState.
-  List<StudentData> get _currentStudents =>
-      GameState.instance.getStudentsForGroup(_selectedGroup);
+
 
   void _showAddStudentDialog() {
     showDialog(
@@ -63,7 +62,7 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
             ElevatedButton(
               onPressed: () {
                 if (_nameController.text.isNotEmpty && _usernameController.text.isNotEmpty) {
-                  GameState.instance.addStudentsInBulk(
+                  context.read<GameState>().addStudentsInBulk(
                     [_nameController.text.trim()],
                     _selectedGroup,
                   );
@@ -258,7 +257,7 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
                   onPressed: detectedCount > 0
                       ? () {
                           final names = _parseNames(bulkController.text);
-                          final generated = GameState.instance
+                          final generated = context.read<GameState>()
                               .addStudentsInBulk(names, _selectedGroup);
                           Navigator.pop(dialogContext);
                           setState(() {}); // Refresh student list
@@ -316,7 +315,7 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
 
   @override
   Widget build(BuildContext context) {
-    final studentList = _currentStudents;
+    final studentList = context.watch<GameState>().getStudentsForGroup(_selectedGroup);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFDF8F5),
@@ -561,7 +560,7 @@ class _TeacherGroupManagementScreenState extends State<TeacherGroupManagementScr
                             trailing: IconButton(
                               icon: const Icon(Icons.delete_outline, color: Colors.red),
                               onPressed: () {
-                                GameState.instance.removeStudent(student.username);
+                                context.read<GameState>().removeStudent(student.username);
                                 setState(() {});
                               },
                             ),

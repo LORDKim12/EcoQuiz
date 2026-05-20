@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../home/presentation/screens/home_screen.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import '../widgets/settings_bottom_sheet.dart';
 
@@ -46,14 +47,14 @@ class StudentProfileScreen extends StatelessWidget {
               const SizedBox(height: 24),
               
               // 3. Lista de Ranking
-              ValueListenableBuilder<int>(
-                valueListenable: GameState.instance.totalStars,
-                builder: (context, myStars, child) {
+              Consumer<GameState>(
+                builder: (context, gameState, child) {
+                  final myStars = gameState.totalStars;
                   final List<Map<String, dynamic>> students = [
                     {'name': 'Sofía Ramírez', 'stars': 30, 'progressColor': const Color(0xFF005A9C), 'avatarColor': Colors.blue.shade200, 'isCurrentUser': false},
                     {'name': 'Ana López', 'stars': 24, 'progressColor': const Color(0xFF27AE60), 'avatarColor': Colors.green.shade200, 'isCurrentUser': false},
                     {'name': 'Carlos Méndez', 'stars': 9, 'progressColor': const Color(0xFFE74C3C), 'avatarColor': Colors.red.shade200, 'isCurrentUser': false},
-                    {'name': GameState.instance.playerName.value, 'stars': myStars, 'progressColor': const Color(0xFFF39C12), 'avatarColor': Colors.orange.shade200, 'isCurrentUser': true},
+                    {'name': gameState.playerName, 'stars': myStars, 'progressColor': const Color(0xFFF39C12), 'avatarColor': Colors.orange.shade200, 'isCurrentUser': true},
                   ];
 
                   // Sort by stars descending
@@ -148,10 +149,9 @@ class StudentProfileScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ValueListenableBuilder<String>(
-                  valueListenable: GameState.instance.playerName,
-                  builder: (context, name, _) => Text(
-                    name,
+                Consumer<GameState>(
+                  builder: (context, gameState, _) => Text(
+                    gameState.playerName,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: AppColors.textBrown,
                           fontWeight: FontWeight.w900,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import '../widgets/settings_bottom_sheet.dart';
 
@@ -61,9 +62,9 @@ class StudentAwardsScreen extends StatelessWidget {
                               letterSpacing: 1.2,
                             ),
                           ),
-                          ValueListenableBuilder<int>(
-                            valueListenable: GameState.instance.totalStars,
-                            builder: (context, totalStars, child) {
+                          Consumer<GameState>(
+                            builder: (context, gameState, child) {
+                              final totalStars = gameState.totalStars;
                               return Text(
                                 '$totalStars ⭐',
                                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
@@ -77,9 +78,9 @@ class StudentAwardsScreen extends StatelessWidget {
                       ),
                     ),
                     // Cantidad de premios comprados
-                    ValueListenableBuilder<List<String>>(
-                      valueListenable: GameState.instance.purchasedRewards,
-                      builder: (context, purchased, _) {
+                    Consumer<GameState>(
+                      builder: (context, gameState, _) {
+                        final purchased = gameState.purchasedRewards;
                         if (purchased.isEmpty) return const SizedBox();
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -141,15 +142,11 @@ class StudentAwardsScreen extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: ValueListenableBuilder<List<RewardData>>(
-                  valueListenable: GameState.instance.rewards,
-                  builder: (context, rewards, child) {
-                    return ValueListenableBuilder<int>(
-                      valueListenable: GameState.instance.totalStars,
-                      builder: (context, totalStars, child) {
-                        return ValueListenableBuilder<List<String>>(
-                          valueListenable: GameState.instance.purchasedRewards,
-                          builder: (context, purchased, child) {
+                child: Consumer<GameState>(
+                  builder: (context, gameState, child) {
+                    final rewards = gameState.rewards;
+                    final totalStars = gameState.totalStars;
+                    final purchased = gameState.purchasedRewards;
                             if (rewards.isEmpty) {
                               return Center(
                                 child: Column(
@@ -200,10 +197,6 @@ class StudentAwardsScreen extends StatelessWidget {
                                 );
                               },
                             );
-                          },
-                        );
-                      },
-                    );
                   },
                 ),
               ),
@@ -445,8 +438,9 @@ class StudentAwardsScreen extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      final success = GameState.instance.spendStars(reward.id, reward.cost);
+                    onPressed: () async {
+                      final success = await context.read<GameState>().spendStars(reward.id, reward.cost);
+                      if (!context.mounted) return;
                       Navigator.pop(dialogContext);
 
                       ScaffoldMessenger.of(context).showSnackBar(

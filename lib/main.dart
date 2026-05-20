@@ -1,14 +1,27 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/student/domain/models/game_state.dart';
+import 'features/student/domain/repositories/database_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await GameState.instance.init();
-  runApp(const EcoQuizApp());
+  
+  final repository = await SharedPreferencesRepository.init();
+  final gameState = GameState(repository);
+  await gameState.init();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: gameState),
+      ],
+      child: const EcoQuizApp(),
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

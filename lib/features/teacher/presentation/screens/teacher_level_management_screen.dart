@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../../student/domain/models/game_state.dart';
 import 'teacher_question_management_screen.dart';
 
@@ -70,9 +71,9 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
             
             // Zones List
             Expanded(
-              child: ValueListenableBuilder<List<LevelData>>(
-                valueListenable: GameState.instance.levels,
-                builder: (context, levels, child) {
+              child: Consumer<GameState>(
+                builder: (context, gameState, child) {
+                  final levels = gameState.levels;
                   return ListView.separated(
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8).copyWith(bottom: 80),
@@ -81,7 +82,7 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
                     itemBuilder: (context, index) {
                       // Mostrar del último al primero
                       final level = levels[levels.length - 1 - index];
-                      return _buildZoneCard(level);
+                      return _buildZoneCard(context, level);
                     },
                   );
                 },
@@ -93,7 +94,7 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
     );
   }
 
-  Widget _buildZoneCard(LevelData level) {
+  Widget _buildZoneCard(BuildContext context, LevelData level) {
     final isUnlocked = level.isUnlocked;
     final hasCustomQuestions = level.questions.isNotEmpty;
     final hasBackground = level.backgroundPath != null;
@@ -211,7 +212,7 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
               inactiveThumbColor: Colors.white,
               inactiveTrackColor: Colors.grey.shade400,
               onChanged: (val) {
-                GameState.instance.setLevelUnlocked(level.id, val);
+                context.read<GameState>().setLevelUnlocked(level.id, val);
               },
             ),
           ],

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../../student/domain/models/game_state.dart';
 
 class TeacherAwardsManagementScreen extends StatefulWidget {
@@ -65,7 +66,7 @@ class _TeacherAwardsManagementScreenState extends State<TeacherAwardsManagementS
                     iconCodePoint: icons[Random().nextInt(icons.length)].codePoint,
                   );
                   
-                  GameState.instance.addReward(newReward);
+                  context.read<GameState>().addReward(newReward);
                   _titleController.clear();
                   _subtitleController.clear();
                   _costController.clear();
@@ -130,9 +131,9 @@ class _TeacherAwardsManagementScreenState extends State<TeacherAwardsManagementS
               ),
             ),
             Expanded(
-              child: ValueListenableBuilder<List<RewardData>>(
-                valueListenable: GameState.instance.rewards,
-                builder: (context, rewards, child) {
+              child: Consumer<GameState>(
+                builder: (context, gameState, child) {
+                  final rewards = gameState.rewards;
                   if (rewards.isEmpty) {
                     return const Center(child: Text('No hay premios registrados.'));
                   }
@@ -161,7 +162,7 @@ class _TeacherAwardsManagementScreenState extends State<TeacherAwardsManagementS
                           trailing: IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
                             onPressed: () {
-                              GameState.instance.removeReward(reward.id);
+                              context.read<GameState>().removeReward(reward.id);
                             },
                           ),
                         ),

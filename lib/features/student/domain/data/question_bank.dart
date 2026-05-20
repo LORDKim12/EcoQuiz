@@ -14,7 +14,7 @@ class QuestionBank {
   /// Devuelve las preguntas para un bioma dado por su ID.
   /// Los biomas 0-5 son los originales. Para IDs mayores, se buscan las
   /// preguntas personalizadas del profesor en GameState.
-  static List<QuizQuestion> getForBiome(int biomeId) {
+  static List<QuizQuestion> getForBiome(int biomeId, [GameState? gameState]) {
     switch (biomeId) {
       case 0:
         return _ciudadQuestions;
@@ -30,17 +30,19 @@ class QuestionBank {
         return _desiertoQuestions;
       default:
         // Buscar preguntas personalizadas del profesor
-        return _getCustomOrGeneric(biomeId);
+        return _getCustomOrGeneric(biomeId, gameState);
     }
   }
 
   /// Busca las preguntas del nivel personalizado en GameState.
   /// Si el profesor no creó preguntas, devuelve las genéricas.
-  static List<QuizQuestion> _getCustomOrGeneric(int biomeId) {
-    final levels = GameState.instance.levels.value;
-    final matchIndex = levels.indexWhere((l) => l.id == biomeId);
-    if (matchIndex != -1 && levels[matchIndex].questions.isNotEmpty) {
-      return levels[matchIndex].questions;
+  static List<QuizQuestion> _getCustomOrGeneric(int biomeId, GameState? gameState) {
+    if (gameState != null) {
+      final levels = gameState.levels;
+      final matchIndex = levels.indexWhere((l) => l.id == biomeId);
+      if (matchIndex != -1 && levels[matchIndex].questions.isNotEmpty) {
+        return levels[matchIndex].questions;
+      }
     }
     return _genericQuestions(biomeId);
   }

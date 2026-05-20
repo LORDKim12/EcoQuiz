@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../domain/models/quiz_model.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import 'student_quiz_result_screen.dart';
 import 'student_level_complete_screen.dart';
@@ -73,8 +74,8 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
   }
 
   void _onTimeUp() {
-    GameState.instance.deductHeart();
-    final remaining = GameState.instance.hearts.value;
+    context.read<GameState>().deductHeart();
+    final remaining = context.read<GameState>().hearts;
 
     if (remaining <= 0) {
       _showGameOverDialog();
@@ -153,7 +154,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
               } else {
                 // Quiz finished, show level complete screen
                 int earned = 1;
-                final h = GameState.instance.hearts.value;
+                final h = context.read<GameState>().hearts;
                 if (h == 5) {
                   earned = 3;
                 } else if (h >= 3) {
@@ -182,7 +183,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
     } else {
       // Wrong answer — deduct heart, shake, and show correct
       _timer?.cancel();
-      GameState.instance.deductHeart();
+      context.read<GameState>().deductHeart();
       
       // Shake animation
       _shakeController.reset();
@@ -194,7 +195,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
         _showCorrectAnswer = true;
       });
 
-      final remainingHearts = GameState.instance.hearts.value;
+      final remainingHearts = context.read<GameState>().hearts;
 
       // Game Over — sin corazones
       if (remainingHearts <= 0) {
@@ -289,7 +290,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(dialogContext);
-                    GameState.instance.restoreHearts();
+                    context.read<GameState>().restoreHearts();
                     setState(() {
                       _currentIndex = 0;
                       _showHint = false;
@@ -327,7 +328,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                 child: OutlinedButton(
                   onPressed: () {
                     Navigator.pop(dialogContext);
-                    GameState.instance.restoreHearts();
+                    context.read<GameState>().restoreHearts();
                     Navigator.pop(context);
                   },
                   style: OutlinedButton.styleFrom(

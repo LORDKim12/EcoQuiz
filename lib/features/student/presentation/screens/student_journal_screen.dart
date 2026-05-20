@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import '../widgets/encyclopedia_card.dart';
 import '../widgets/settings_bottom_sheet.dart';
@@ -70,9 +71,9 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
                       child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
                     ),
                     const SizedBox(width: 16),
-                    ValueListenableBuilder<List<int>>(
-                      valueListenable: GameState.instance.unlockedCards,
-                      builder: (context, unlocked, child) {
+                    Consumer<GameState>(
+                      builder: (context, gameState, child) {
+                        final unlocked = gameState.unlockedCards;
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -133,9 +134,9 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: ValueListenableBuilder<List<int>>(
-                  valueListenable: GameState.instance.unlockedCards,
-                  builder: (context, unlocked, child) {
+                child: Consumer<GameState>(
+                  builder: (context, gameState, child) {
+                    final unlocked = gameState.unlockedCards;
                     return GridView.count(
                       crossAxisCount: 2,
                       crossAxisSpacing: 16,

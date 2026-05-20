@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 
@@ -116,7 +117,7 @@ class _SettingsSheetContentState extends State<_SettingsSheetContent> {
                   title: 'Restaurar corazones',
                   subtitle: 'Volver a tener 5 ❤️',
                   onTap: () {
-                    GameState.instance.restoreHearts();
+                    context.read<GameState>().restoreHearts();
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -391,7 +392,7 @@ class _SettingsSheetContentState extends State<_SettingsSheetContent> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      GameState.instance.resetAllProgress();
+                      context.read<GameState>().resetAllProgress();
                       Navigator.pop(dialogContext); // Cierra diálogo
                       Navigator.pop(context); // Cierra bottom sheet
                       ScaffoldMessenger.of(context).showSnackBar(

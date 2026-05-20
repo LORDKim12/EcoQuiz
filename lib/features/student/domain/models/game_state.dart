@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../repositories/database_repository.dart';
 import 'quiz_model.dart';
 
 class EncyclopediaCardData {
@@ -96,7 +96,6 @@ class RewardData {
       );
 }
 
-/// Modelo para representar un alumno generado.
 class StudentData {
   final String name;
   final String username;
@@ -125,97 +124,117 @@ class StudentData {
       );
 }
 
-class GameState {
-  static final GameState instance = GameState._internal();
-  GameState._internal();
+class GameState extends ChangeNotifier {
+  final IDatabaseRepository _prefs;
 
-  final ValueNotifier<List<int>> unlockedCards = ValueNotifier<List<int>>([0, 4]);
-  final ValueNotifier<int> hearts = ValueNotifier<int>(5);
-  
-  // Nuevos estados dinámicos
-  final ValueNotifier<List<LevelData>> levels = ValueNotifier<List<LevelData>>([]);
-  final ValueNotifier<List<RewardData>> rewards = ValueNotifier<List<RewardData>>([]);
-  
-  // Mapea el id del nivel a las estrellas obtenidas (0-3)
-  final ValueNotifier<Map<String, int>> levelStars = ValueNotifier<Map<String, int>>({});
-  
-  // Total de estrellas sumadas
-  final ValueNotifier<int> totalStars = ValueNotifier<int>(0);
+  GameState(this._prefs);
 
-  // Nombre del jugador
-  final ValueNotifier<String> playerName = ValueNotifier<String>('Explorador');
+  List<int> _unlockedCards = [0, 4];
+  List<int> get unlockedCards => _unlockedCards;
 
-  // Premios comprados (IDs)
-  final ValueNotifier<List<String>> purchasedRewards = ValueNotifier<List<String>>([]);
+  int _hearts = 5;
+  int get hearts => _hearts;
 
-  // Lista de alumnos registrados
-  final ValueNotifier<List<StudentData>> students = ValueNotifier<List<StudentData>>([]);
+  int _xp = 0;
+  int get xp => _xp;
 
-  SharedPreferences? _prefs;
+  List<LevelData> _levels = [];
+  List<LevelData> get levels => _levels;
+
+  List<RewardData> _rewards = [];
+  List<RewardData> get rewards => _rewards;
+
+  Map<String, int> _levelStars = {};
+  Map<String, int> get levelStars => _levelStars;
+
+  int _totalStars = 0;
+  int get totalStars => _totalStars;
+
+  String _playerName = 'Explorador';
+  String get playerName => _playerName;
+
+  List<String> _purchasedRewards = [];
+  List<String> get purchasedRewards => _purchasedRewards;
+
+  List<StudentData> _students = [];
+  List<StudentData> get students => _students;
+
+  String get currentRank {
+    if (_xp < 500) return 'Explorador Novato';
+    if (_xp < 1500) return 'Aventurero';
+    if (_xp < 3000) return 'Héroe Ecológico';
+    return 'Guardián de la Naturaleza';
+  }
 
   Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
-    
     // 1. Cargar tarjetas
-    final String? cardsJson = _prefs?.getString('unlocked_cards');
+    final String? cardsJson = await _prefs.getString('unlocked_cards');
     if (cardsJson != null) {
-      unlockedCards.value = List<int>.from(jsonDecode(cardsJson));
+      _unlockedCards = List<int>.from(jsonDecode(cardsJson));
     }
 
     // 2. Cargar niveles
-    final String? levelsJson = _prefs?.getString('dynamic_levels');
+    final String? levelsJson = await _prefs.getString('dynamic_levels');
     if (levelsJson != null) {
       final List<dynamic> decoded = jsonDecode(levelsJson);
-      levels.value = decoded.map((e) => LevelData.fromJson(e)).toList();
+      _levels = decoded.map((e) => LevelData.fromJson(e)).toList();
     } else {
       _initDefaultLevels();
     }
 
     // 3. Cargar recompensas
-    final String? rewardsJson = _prefs?.getString('dynamic_rewards');
+    final String? rewardsJson = await _prefs.getString('dynamic_rewards');
     if (rewardsJson != null) {
       final List<dynamic> decoded = jsonDecode(rewardsJson);
-      rewards.value = decoded.map((e) => RewardData.fromJson(e)).toList();
+      _rewards = decoded.map((e) => RewardData.fromJson(e)).toList();
     } else {
       _initDefaultRewards();
     }
 
     // 4. Cargar estrellas por nivel
-    final String? starsJson = _prefs?.getString('level_stars');
+    final String? starsJson = await _prefs.getString('level_stars');
     if (starsJson != null) {
       final Map<String, dynamic> decoded = jsonDecode(starsJson);
-      levelStars.value = decoded.map((key, value) => MapEntry(key, value as int));
+      _levelStars = decoded.map((key, value) => MapEntry(key, value as int));
       _recalculateTotalStars();
     }
 
     // 5. Cargar vidas
-    final int? savedHearts = _prefs?.getInt('hearts');
+    final int? savedHearts = await _prefs.getInt('hearts');
     if (savedHearts != null) {
-      hearts.value = savedHearts;
+      _hearts = savedHearts;
     }
 
     // 6. Cargar nombre del jugador
-    final String? savedName = _prefs?.getString('player_name');
+    final String? savedName = await _prefs.getString('player_name');
     if (savedName != null && savedName.isNotEmpty) {
-      playerName.value = savedName;
+      _playerName = savedName;
     }
 
     // 7. Cargar premios comprados
-    final String? purchasedJson = _prefs?.getString('purchased_rewards');
+    final String? purchasedJson = await _prefs.getString('purchased_rewards');
     if (purchasedJson != null) {
-      purchasedRewards.value = List<String>.from(jsonDecode(purchasedJson));
+      _purchasedRewards = List<String>.from(jsonDecode(purchasedJson));
     }
 
     // 8. Cargar alumnos registrados
-    final String? studentsJson = _prefs?.getString('registered_students');
+    final String? studentsJson = await _prefs.getString('registered_students');
     if (studentsJson != null) {
       final List<dynamic> decoded = jsonDecode(studentsJson);
-      students.value = decoded.map((e) => StudentData.fromJson(e)).toList();
+      _students = decoded.map((e) => StudentData.fromJson(e)).toList();
     }
+
+    // 9. Cargar XP
+    final int? savedXP = await _prefs.getInt('xp');
+    if (savedXP != null) {
+      _xp = savedXP;
+    }
+
+    notifyListeners();
   }
 
   void _initDefaultLevels() {
-    levels.value = [
+    _levels = [
       LevelData(id: 0, title: 'Ciudad', isUnlocked: true),
       LevelData(id: 1, title: 'Manglar', isUnlocked: false),
       LevelData(id: 2, title: 'Arrecife', isUnlocked: false),
@@ -227,7 +246,7 @@ class GameState {
   }
 
   void _initDefaultRewards() {
-    rewards.value = [
+    _rewards = [
       RewardData(id: 'r1', title: 'Avatar Especial', subtitle: 'Ocelote', cost: 50, colorValue: 0xFF8E44AD, iconCodePoint: Icons.face.codePoint),
       RewardData(id: 'r2', title: 'Pista Extra', subtitle: 'Para el Quiz', cost: 10, colorValue: 0xFFF1C40F, iconCodePoint: Icons.lightbulb_outline.codePoint),
       RewardData(id: 'r3', title: 'Fondo Animado', subtitle: 'Desierto', cost: 100, colorValue: 0xFF27AE60, iconCodePoint: Icons.wallpaper.codePoint),
@@ -236,115 +255,119 @@ class GameState {
     _saveRewards();
   }
 
-  void _saveLevels() {
-    final jsonList = levels.value.map((e) => e.toJson()).toList();
-    _prefs?.setString('dynamic_levels', jsonEncode(jsonList));
+  Future<void> _saveLevels() async {
+    final jsonList = _levels.map((e) => e.toJson()).toList();
+    await _prefs.saveString('dynamic_levels', jsonEncode(jsonList));
+    notifyListeners();
   }
 
-  void _saveRewards() {
-    final jsonList = rewards.value.map((e) => e.toJson()).toList();
-    _prefs?.setString('dynamic_rewards', jsonEncode(jsonList));
+  Future<void> _saveRewards() async {
+    final jsonList = _rewards.map((e) => e.toJson()).toList();
+    await _prefs.saveString('dynamic_rewards', jsonEncode(jsonList));
+    notifyListeners();
   }
 
-  void _saveStudents() {
-    final jsonList = students.value.map((e) => e.toJson()).toList();
-    _prefs?.setString('registered_students', jsonEncode(jsonList));
+  Future<void> _saveStudents() async {
+    final jsonList = _students.map((e) => e.toJson()).toList();
+    await _prefs.saveString('registered_students', jsonEncode(jsonList));
+    notifyListeners();
+  }
+
+  Future<void> _saveXP() async {
+    await _prefs.saveInt('xp', _xp);
+    notifyListeners();
+  }
+
+  void addXP(int points) {
+    _xp += points;
+    _saveXP();
   }
 
   // ---- Métodos de Niveles ----
   void setLevelUnlocked(int id, bool isUnlocked) {
-    final newList = List<LevelData>.from(levels.value);
-    final index = newList.indexWhere((l) => l.id == id);
+    final index = _levels.indexWhere((l) => l.id == id);
     if (index != -1) {
-      final old = newList[index];
-      newList[index] = LevelData(
+      final old = _levels[index];
+      _levels[index] = LevelData(
         id: id,
         title: old.title,
         isUnlocked: isUnlocked,
         questions: old.questions,
         backgroundPath: old.backgroundPath,
       );
-      levels.value = newList;
       _saveLevels();
     }
   }
 
   void addLevel(String title) {
-    final newList = List<LevelData>.from(levels.value);
-    final newId = newList.isEmpty ? 0 : newList.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
-    newList.add(LevelData(id: newId, title: title, isUnlocked: true));
-    levels.value = newList;
+    final newId = _levels.isEmpty ? 0 : _levels.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
+    _levels.add(LevelData(id: newId, title: title, isUnlocked: true));
     _saveLevels();
   }
 
-  /// Crea un nuevo nivel con preguntas personalizadas y fondo opcional.
   void addLevelWithQuestions(String title, String? backgroundPath, List<QuizQuestion> questions) {
-    final newList = List<LevelData>.from(levels.value);
-    final newId = newList.isEmpty ? 0 : newList.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
-    newList.add(LevelData(
+    final newId = _levels.isEmpty ? 0 : _levels.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
+    _levels.add(LevelData(
       id: newId,
       title: title,
       isUnlocked: true,
       questions: questions,
       backgroundPath: backgroundPath,
     ));
-    levels.value = newList;
     _saveLevels();
   }
 
   // ---- Métodos de Recompensas ----
   void addReward(RewardData reward) {
-    final newList = List<RewardData>.from(rewards.value)..add(reward);
-    rewards.value = newList;
+    _rewards.add(reward);
     _saveRewards();
   }
 
   void removeReward(String id) {
-    final newList = List<RewardData>.from(rewards.value)..removeWhere((r) => r.id == id);
-    rewards.value = newList;
+    _rewards.removeWhere((r) => r.id == id);
     _saveRewards();
   }
 
   // ---- Métodos de Estrellas ----
   void saveStarsForLevel(int levelId, int starsEarned) {
-    final currentStars = levelStars.value[levelId.toString()] ?? 0;
-    // Solo guardamos si el nuevo puntaje es mayor al anterior
+    final currentStars = _levelStars[levelId.toString()] ?? 0;
     if (starsEarned > currentStars) {
-      final newMap = Map<String, int>.from(levelStars.value);
-      newMap[levelId.toString()] = starsEarned;
-      levelStars.value = newMap;
-      _prefs?.setString('level_stars', jsonEncode(newMap));
+      _levelStars[levelId.toString()] = starsEarned;
+      _prefs.saveString('level_stars', jsonEncode(_levelStars));
       _recalculateTotalStars();
     }
   }
 
   void _recalculateTotalStars() {
     int total = 0;
-    for (var stars in levelStars.value.values) {
+    for (var stars in _levelStars.values) {
       total += stars;
     }
-    totalStars.value = total;
+    _totalStars = total;
+    notifyListeners();
   }
 
   // ---- Métodos Viejos (Mantenidos) ----
   void unlockCard(int id) {
-    if (!unlockedCards.value.contains(id)) {
-      final newList = List.from(unlockedCards.value)..add(id);
-      unlockedCards.value = List<int>.from(newList);
-      _prefs?.setString('unlocked_cards', jsonEncode(newList));
+    if (!_unlockedCards.contains(id)) {
+      _unlockedCards.add(id);
+      _prefs.saveString('unlocked_cards', jsonEncode(_unlockedCards));
+      notifyListeners();
     }
   }
 
   void deductHeart() {
-    if (hearts.value > 0) {
-      hearts.value -= 1;
-      _prefs?.setInt('hearts', hearts.value);
+    if (_hearts > 0) {
+      _hearts -= 1;
+      _prefs.saveInt('hearts', _hearts);
+      notifyListeners();
     }
   }
 
   void restoreHearts() {
-    hearts.value = 5;
-    _prefs?.setInt('hearts', hearts.value);
+    _hearts = 5;
+    _prefs.saveInt('hearts', _hearts);
+    notifyListeners();
   }
 
   // ---- Lista de tarjetas (Fija por ahora, ya que el profe aceptó que el journal quede igual) ----
@@ -407,32 +430,32 @@ class GameState {
 
   // ── Nombre del jugador ─────────────────────────────────────────
   void setPlayerName(String name) {
-    playerName.value = name.trim().isEmpty ? 'Explorador' : name.trim();
-    _prefs?.setString('player_name', playerName.value);
+    _playerName = name.trim().isEmpty ? 'Explorador' : name.trim();
+    _prefs.saveString('player_name', _playerName);
+    notifyListeners();
   }
 
   // ── Comprar premio con estrellas ────────────────────────────────
-  bool spendStars(String rewardId, int cost) {
-    if (totalStars.value >= cost && !purchasedRewards.value.contains(rewardId)) {
-      totalStars.value -= cost;
-      // Recalcular las estrellas restando el costo
-      _prefs?.setInt('spent_stars', (_prefs?.getInt('spent_stars') ?? 0) + cost);
+  Future<bool> spendStars(String rewardId, int cost) async {
+    if (_totalStars >= cost && !_purchasedRewards.contains(rewardId)) {
+      _totalStars -= cost;
+      
+      final currentSpent = await _prefs.getInt('spent_stars') ?? 0;
+      await _prefs.saveInt('spent_stars', currentSpent + cost);
 
-      final newPurchased = List<String>.from(purchasedRewards.value)..add(rewardId);
-      purchasedRewards.value = newPurchased;
-      _prefs?.setString('purchased_rewards', jsonEncode(newPurchased));
+      _purchasedRewards.add(rewardId);
+      await _prefs.saveString('purchased_rewards', jsonEncode(_purchasedRewards));
+      notifyListeners();
       return true;
     }
     return false;
   }
 
   bool isRewardPurchased(String rewardId) {
-    return purchasedRewards.value.contains(rewardId);
+    return _purchasedRewards.contains(rewardId);
   }
 
   // ── Creación masiva de alumnos ─────────────────────────────────
-  /// Recibe una lista de nombres y genera automáticamente usuario y contraseña
-  /// para cada alumno, asignándolos al grupo indicado.
   List<StudentData> addStudentsInBulk(List<String> studentNames, String groupId) {
     final rng = Random();
     final newStudents = <StudentData>[];
@@ -441,14 +464,12 @@ class GameState {
       final trimmed = name.trim();
       if (trimmed.isEmpty) continue;
 
-      // Generar username: primera letra + apellido + grupo (sin espacios)
       final parts = trimmed.split(RegExp(r'\s+'));
       final firstName = parts.first.toLowerCase();
       final lastName = parts.length > 1 ? parts.last.toLowerCase() : '';
       final groupSuffix = groupId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
       final username = '${firstName[0]}$lastName$groupSuffix';
 
-      // Generar contraseña simple: eco + 4 dígitos aleatorios
       final password = 'eco${rng.nextInt(9000) + 1000}';
 
       newStudents.add(StudentData(
@@ -459,51 +480,41 @@ class GameState {
       ));
     }
 
-    final updatedList = List<StudentData>.from(students.value)..addAll(newStudents);
-    students.value = updatedList;
+    _students.addAll(newStudents);
     _saveStudents();
     return newStudents;
   }
 
-  /// Obtiene los alumnos de un grupo específico.
   List<StudentData> getStudentsForGroup(String groupId) {
-    return students.value.where((s) => s.groupId == groupId).toList();
+    return _students.where((s) => s.groupId == groupId).toList();
   }
 
-  /// Elimina un alumno por su username.
   void removeStudent(String username) {
-    final newList = List<StudentData>.from(students.value)
-      ..removeWhere((s) => s.username == username);
-    students.value = newList;
+    _students.removeWhere((s) => s.username == username);
     _saveStudents();
   }
 
   // ── Reiniciar todo el progreso ─────────────────────────────────
-  /// Limpia todas las tarjetas, estrellas, niveles y restaura corazones.
-  /// Útil para la demo (reiniciar entre alumnos).
-  void resetAllProgress() {
-    // Limpiar tarjetas desbloqueadas
-    unlockedCards.value = [];
-    _prefs?.setString('unlocked_cards', '[]');
+  Future<void> resetAllProgress() async {
+    _unlockedCards = [];
+    await _prefs.saveString('unlocked_cards', '[]');
 
-    // Limpiar estrellas de niveles
-    levelStars.value = {};
-    totalStars.value = 0;
-    _prefs?.setString('level_stars', '{}');
-    _prefs?.setInt('spent_stars', 0);
+    _levelStars = {};
+    _totalStars = 0;
+    await _prefs.saveString('level_stars', '{}');
+    await _prefs.saveInt('spent_stars', 0);
 
-    // Limpiar premios comprados
-    purchasedRewards.value = [];
-    _prefs?.setString('purchased_rewards', '[]');
+    _purchasedRewards = [];
+    await _prefs.saveString('purchased_rewards', '[]');
+    
+    _xp = 0;
+    await _prefs.saveInt('xp', 0);
 
-    // Restaurar corazones
     restoreHearts();
 
-    // Reiniciar nombre
-    playerName.value = 'Explorador';
-    _prefs?.setString('player_name', 'Explorador');
+    _playerName = 'Explorador';
+    await _prefs.saveString('player_name', 'Explorador');
 
-    // Reiniciar niveles: solo el primero desbloqueado, preservando niveles personalizados
     final defaultLevels = [
       LevelData(id: 0, title: 'Ciudad', isUnlocked: true),
       LevelData(id: 1, title: 'Manglar', isUnlocked: false),
@@ -512,8 +523,7 @@ class GameState {
       LevelData(id: 4, title: 'Selva', isUnlocked: false),
       LevelData(id: 5, title: 'Desierto', isUnlocked: false),
     ];
-    // Preservar niveles personalizados del profesor (id > 5)
-    final customLevels = levels.value
+    final customLevels = _levels
         .where((l) => l.id > 5)
         .map((l) => LevelData(
               id: l.id,
@@ -523,7 +533,8 @@ class GameState {
               backgroundPath: l.backgroundPath,
             ))
         .toList();
-    levels.value = [...defaultLevels, ...customLevels];
-    _saveLevels();
+    _levels = [...defaultLevels, ...customLevels];
+    await _saveLevels();
+    notifyListeners();
   }
 }

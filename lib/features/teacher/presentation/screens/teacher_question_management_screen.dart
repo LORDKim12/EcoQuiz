@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../../student/domain/models/game_state.dart';
 import '../../../student/domain/models/quiz_model.dart';
 
@@ -230,7 +231,7 @@ class _TeacherQuestionManagementScreenState
       );
     }).toList();
 
-    GameState.instance.addLevelWithQuestions(name, _selectedBackgroundPath, questions);
+    context.read<GameState>().addLevelWithQuestions(name, _selectedBackgroundPath, questions);
     return true;
   }
 

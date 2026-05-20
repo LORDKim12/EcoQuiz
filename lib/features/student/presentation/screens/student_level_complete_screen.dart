@@ -3,6 +3,7 @@ import 'package:confetti/confetti.dart';
 import 'dart:math';
 import '../../../../core/constants/app_colors.dart';
 import 'student_journal_screen.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 
 class StudentLevelCompleteScreen extends StatefulWidget {
@@ -94,14 +95,15 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
 
     // Secuencia de animaciones
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      GameState.instance.unlockCard(safeCardIndex);
-      GameState.instance.saveStarsForLevel(widget.levelIndex, widget.earnedStars);
+      final gameState = context.read<GameState>();
+      gameState.unlockCard(safeCardIndex);
+      gameState.saveStarsForLevel(widget.levelIndex, widget.earnedStars);
 
       if (widget.earnedStars > 0) {
-        GameState.instance.setLevelUnlocked(widget.levelIndex + 1, true);
+        gameState.setLevelUnlocked(widget.levelIndex + 1, true);
       }
 
-      GameState.instance.restoreHearts();
+      gameState.restoreHearts();
 
       // Disparar animaciones en secuencia
       _confettiController.play();
