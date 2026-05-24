@@ -204,13 +204,52 @@ class GameState {
     newList.add(LevelData(id: newId, title: title, biome: biome, isUnlocked: true));
     levels.value = newList;
     _saveLevels();
+
+    // Persistir en Supabase (fire-and-forget, actualiza ID local luego)
+    _persistLevelToSupabase(title, biome, newId);
+  }
+
+  Future<void> _persistLevelToSupabase(String title, String biome, int localId) async {
+    try {
+      final client = Supabase.instance.client;
+      final existing = await client
+          .from('levels')
+          .select('id')
+          .order('order_index', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      final nextOrder = existing != null ? (existing['id'] as int) + 1 : 0;
+
+      final result = await client.from('levels').insert({
+        'title': title,
+        'biome': biome.toLowerCase(),
+        'order_index': nextOrder,
+        'is_active': true,
+      }).select().single();
+
+      // Actualizar el ID local con el ID real de Supabase
+      final supabaseId = result['id'] as int;
+      final newList = List<LevelData>.from(levels.value);
+      final idx = newList.indexWhere((l) => l.id == localId && l.title == title && l.biome == biome);
+      if (idx >= 0) {
+        newList[idx] = LevelData(id: supabaseId, title: title, biome: biome, isUnlocked: true);
+        levels.value = newList;
+        _saveLevels();
+      }
+    } catch (e) {
+      debugPrint('Error persisting level to Supabase: $e');
+    }
   }
 
   void deleteBiome(String biome) {
+    final toDelete = levels.value.where((l) => l.biome == biome).toList();
     final newList = List<LevelData>.from(levels.value);
     newList.removeWhere((l) => l.biome == biome);
     levels.value = newList;
     _saveLevels();
+
+    // Eliminar de Supabase
+    _deleteLevelsFromSupabase(toDelete.map((l) => l.id).toList());
   }
 
   void deleteLevel(int levelId) {
@@ -218,6 +257,20 @@ class GameState {
     newList.removeWhere((l) => l.id == levelId);
     levels.value = newList;
     _saveLevels();
+
+    // Eliminar de Supabase
+    _deleteLevelsFromSupabase([levelId]);
+  }
+
+  Future<void> _deleteLevelsFromSupabase(List<int> ids) async {
+    try {
+      final client = Supabase.instance.client;
+      for (final id in ids) {
+        await client.from('levels').delete().eq('id', id);
+      }
+    } catch (e) {
+      debugPrint('Error deleting levels from Supabase: $e');
+    }
   }
 
   // ---- Métodos de Recompensas ----

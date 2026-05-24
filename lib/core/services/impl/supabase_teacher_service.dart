@@ -10,6 +10,9 @@ class SupabaseTeacherService implements TeacherService {
   /// Establecer el ID del maestro actual (se llama después del login).
   void setTeacherId(String id) => _teacherId = id;
 
+  /// Getter público para el ID del maestro actual.
+  String? get teacherId => _teacherId;
+
   String get _tid {
     if (_teacherId == null) throw Exception('TeacherId no configurado.');
     return _teacherId!;
@@ -119,22 +122,28 @@ class SupabaseTeacherService implements TeacherService {
   // ── Recompensas ──────────────────────────────────────────────────────
   @override
   Future<List<RewardModel>> getRewards() async {
-    // Obtener el primer grupo del maestro
     final groups = await getGroups();
     if (groups.isEmpty) return [];
 
+    // Obtener rewards de TODOS los grupos del maestro
+    final groupIds = groups.map((g) => g.id).toList();
     final result = await _client
         .from('rewards')
         .select()
-        .eq('group_id', groups.first.id);
+        .inFilter('group_id', groupIds);
 
     return result.map((json) => RewardModel.fromJson(json)).toList();
   }
 
   @override
   Future<void> addReward(RewardModel reward) async {
-    final groups = await getGroups();
-    if (groups.isEmpty) return;
+    var groups = await getGroups();
+    // Si no hay grupos, crear uno automáticamente para poder guardar rewards
+    if (groups.isEmpty) {
+      await createGroup('Grupo Principal');
+      groups = await getGroups();
+      if (groups.isEmpty) return;
+    }
 
     await _client.from('rewards').insert({
       'group_id': groups.first.id,

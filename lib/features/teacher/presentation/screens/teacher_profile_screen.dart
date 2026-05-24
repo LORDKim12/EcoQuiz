@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/providers/service_providers.dart';
 import 'teacher_progress_screen.dart';
 import 'teacher_level_management_screen.dart';
 import 'teacher_awards_management_screen.dart';
@@ -7,8 +10,79 @@ import 'teacher_group_management_screen.dart';
 import 'teacher_question_management_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 
-class TeacherProfileScreen extends StatelessWidget {
+class TeacherProfileScreen extends ConsumerStatefulWidget {
   const TeacherProfileScreen({super.key});
+
+  @override
+  ConsumerState<TeacherProfileScreen> createState() =>
+      _TeacherProfileScreenState();
+}
+
+class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
+  String _teacherName = 'Maestro';
+  int _totalStudents = 0;
+  double _avgStars = 0.0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final teacherService = ref.read(teacherServiceProvider);
+      final client = Supabase.instance.client;
+
+      // Get teacher's groups
+      final groups = await teacherService.getGroups();
+
+      // Get teacher name from the logged-in teacher's ID
+      final tid = teacherService.teacherId;
+      if (tid != null) {
+        final teacherProfile = await client
+            .from('profiles')
+            .select('name')
+            .eq('id', tid)
+            .maybeSingle();
+        if (teacherProfile != null) {
+          _teacherName = teacherProfile['name'] ?? 'Maestro';
+        }
+      }
+
+      // Count students across all groups and compute average stars
+      int totalStudents = 0;
+      double totalStars = 0;
+      int studentsWithProgress = 0;
+
+      for (final group in groups) {
+        final students = await teacherService.getStudentsInGroup(group.id);
+        totalStudents += students.length;
+
+        final progress = await teacherService.getGroupProgress(group.id);
+        for (final studentProgress in progress.values) {
+          final stars =
+              studentProgress.values.fold<int>(0, (sum, s) => sum + s);
+          if (stars > 0) {
+            totalStars += stars;
+            studentsWithProgress++;
+          }
+        }
+      }
+
+      _totalStudents = totalStudents;
+      _avgStars =
+          studentsWithProgress > 0 ? totalStars / studentsWithProgress : 0;
+    } catch (e) {
+      debugPrint('Error loading teacher stats: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// Current week of the month (1-based).
+  int get _currentWeek => ((DateTime.now().day - 1) / 7).floor() + 1;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +99,7 @@ class TeacherProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '¡Hola, Maestra\nGarcía!',
+                '¡Hola, $_teacherName!',
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       color: AppColors.textBrown,
                       fontWeight: FontWeight.w900,
@@ -41,12 +115,12 @@ class TeacherProfileScreen extends StatelessWidget {
                     ),
               ),
               const SizedBox(height: 24),
-              
+
               // Stat Cards
               _buildStatCard(
                 icon: Icons.people_alt,
                 label: 'ALUMNOS ACTIVOS',
-                value: '28',
+                value: _isLoading ? '…' : '$_totalStudents',
                 bgColor: const Color(0xFFFDE8E1),
                 iconBgColor: Colors.white,
                 iconColor: const Color(0xFF27AE60),
@@ -56,7 +130,7 @@ class TeacherProfileScreen extends StatelessWidget {
               _buildStatCard(
                 icon: Icons.calendar_today,
                 label: 'SEMANA ACTUAL',
-                value: '3',
+                value: '$_currentWeek',
                 bgColor: const Color(0xFFF39C12),
                 iconBgColor: Colors.white,
                 iconColor: const Color(0xFFD35400),
@@ -66,7 +140,7 @@ class TeacherProfileScreen extends StatelessWidget {
               _buildStatCard(
                 icon: Icons.star_border,
                 label: 'PROMEDIO DEL GRUPO',
-                value: '20.2',
+                value: _isLoading ? '…' : _avgStars.toStringAsFixed(1),
                 valueIcon: Icons.star,
                 valueIconColor: const Color(0xFFF1C40F),
                 bgColor: const Color(0xFF3498DB),
@@ -74,20 +148,21 @@ class TeacherProfileScreen extends StatelessWidget {
                 iconColor: const Color(0xFF2980B9),
                 textColor: AppColors.textDark,
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Action Buttons
               _buildActionButton(
                 label: 'Ver Progreso',
                 icon: Icons.bar_chart,
                 bgColor: const Color(0xFFFFDAB9), // Peach color
                 textColor: AppColors.textDark,
-                iconBgColor: Colors.black.withOpacity(0.05),
+                iconBgColor: Colors.black.withValues(alpha: 0.05),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const TeacherProgressScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const TeacherProgressScreen()),
                   );
                 },
               ),
@@ -97,11 +172,13 @@ class TeacherProfileScreen extends StatelessWidget {
                 icon: Icons.public,
                 bgColor: const Color(0xFFD6EAF8), // Light blue
                 textColor: AppColors.textDark,
-                iconBgColor: Colors.black.withOpacity(0.05),
+                iconBgColor: Colors.black.withValues(alpha: 0.05),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const TeacherLevelManagementScreen()),
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            const TeacherLevelManagementScreen()),
                   );
                 },
               ),
@@ -111,11 +188,13 @@ class TeacherProfileScreen extends StatelessWidget {
                 icon: Icons.card_giftcard,
                 bgColor: const Color(0xFFD6EAF8), // Light blue
                 textColor: AppColors.textDark,
-                iconBgColor: Colors.black.withOpacity(0.05),
+                iconBgColor: Colors.black.withValues(alpha: 0.05),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const TeacherAwardsManagementScreen()),
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            const TeacherAwardsManagementScreen()),
                   );
                 },
               ),
@@ -125,11 +204,13 @@ class TeacherProfileScreen extends StatelessWidget {
                 icon: Icons.group_add,
                 bgColor: const Color(0xFFE8DAEF), // Light purple
                 textColor: AppColors.textDark,
-                iconBgColor: Colors.black.withOpacity(0.05),
+                iconBgColor: Colors.black.withValues(alpha: 0.05),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const TeacherGroupManagementScreen()),
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            const TeacherGroupManagementScreen()),
                   );
                 },
               ),
@@ -139,30 +220,36 @@ class TeacherProfileScreen extends StatelessWidget {
                 icon: Icons.quiz,
                 bgColor: const Color(0xFFFFF3CD), // Light yellow
                 textColor: AppColors.textDark,
-                iconBgColor: Colors.black.withOpacity(0.05),
+                iconBgColor: Colors.black.withValues(alpha: 0.05),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const TeacherQuestionManagementScreen()),
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            const TeacherQuestionManagementScreen()),
                   );
                 },
               ),
               const SizedBox(height: 32),
-              
+
               // Botón de Cerrar Sesión
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () {
                     Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (context) => const HomeScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const HomeScreen()),
                       (route) => false,
                     );
                   },
                   icon: const Icon(Icons.logout, color: Colors.red),
                   label: const Text(
                     'Cerrar Sesión',
-                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
                   ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -173,7 +260,7 @@ class TeacherProfileScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 32),
             ],
           ),
@@ -200,7 +287,7 @@ class TeacherProfileScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: bgColor.withOpacity(0.4),
+            color: bgColor.withValues(alpha: 0.4),
             offset: const Offset(0, 6),
             blurRadius: 12,
           ),
@@ -224,7 +311,7 @@ class TeacherProfileScreen extends StatelessWidget {
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: textColor.withOpacity(0.8),
+                    color: textColor.withValues(alpha: 0.8),
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2,
                     fontSize: 12,
@@ -273,7 +360,7 @@ class TeacherProfileScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               offset: const Offset(0, 4),
               blurRadius: 8,
             ),
@@ -309,7 +396,11 @@ class TeacherProfileScreen extends StatelessWidget {
 
   Widget _buildCustomAppBar(BuildContext context) {
     return Container(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, left: 16, right: 16, bottom: 8),
+      padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 8,
+          left: 16,
+          right: 16,
+          bottom: 8),
       decoration: const BoxDecoration(
         color: Colors.transparent,
       ),
@@ -339,11 +430,14 @@ class TeacherProfileScreen extends StatelessWidget {
               border: Border.all(color: Colors.grey.shade300),
             ),
             child: IconButton(
-              icon: const Icon(Icons.settings_outlined, color: AppColors.studentBorder),
+              icon: const Icon(Icons.settings_outlined,
+                  color: AppColors.studentBorder),
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const TeacherLevelManagementScreen()),
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          const TeacherLevelManagementScreen()),
                 );
               },
             ),

@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase_flutter;
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/providers/service_providers.dart';
 import '../../../../core/models/models.dart';
-import '../../../student/domain/models/game_state.dart';
 
 class TeacherQuestionManagementScreen extends ConsumerStatefulWidget {
   final int? initialLevelId;
@@ -32,20 +31,20 @@ class _TeacherQuestionManagementScreenState
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final studentService = ref.read(studentServiceProvider);
-      // Obtener los niveles directamente del GameState para que coincidan con el mapa local
-      _levels = GameState.instance.levels.value.map((l) => LevelModel(
-        id: l.id,
-        title: l.title,
-        biome: l.biome,
-        orderIndex: l.id,
-        isActive: true,
-      )).toList();
+      final teacherService = ref.read(teacherServiceProvider);
+      // Cargar niveles de Supabase (no del GameState) para que los IDs coincidan
+      _levels = await teacherService.getLevels();
 
       _questionsByLevel = {};
+      final client = supabase_flutter.Supabase.instance.client;
       for (final level in _levels) {
-        final questions = await studentService.getQuestionsForLevel(level.id);
-        _questionsByLevel[level.id] = questions;
+        final result = await client
+            .from('questions')
+            .select()
+            .eq('level_id', level.id);
+        _questionsByLevel[level.id] = result
+            .map((json) => QuestionModel.fromJson(json))
+            .toList();
       }
       if (_levels.isNotEmpty && !_levels.any((l) => l.id == _selectedLevelId)) {
         _selectedLevelId = _levels.first.id;

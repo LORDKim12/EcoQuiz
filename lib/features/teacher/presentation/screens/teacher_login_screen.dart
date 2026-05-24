@@ -12,24 +12,36 @@ class TeacherLoginScreen extends ConsumerStatefulWidget {
 }
 
 class _TeacherLoginScreenState extends ConsumerState<TeacherLoginScreen> {
+  final _emailController = TextEditingController(text: 'admin@ecoquiz.mx');
   final _pinController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePin = true;
 
   @override
   void dispose() {
+    _emailController.dispose();
     _pinController.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
+    if (_emailController.text.trim().isEmpty) {
+      _showError('Ingresa tu correo electrónico');
+      return;
+    }
+    if (_pinController.text.trim().isEmpty) {
+      _showError('Ingresa tu PIN');
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final authService = ref.read(authServiceProvider);
       final teacherService = ref.read(teacherServiceProvider);
 
       final user = await authService.loginTeacher(
-        email: 'demo@ecoquiz.mx',
-        password: _pinController.text,
+        email: _emailController.text.trim(),
+        password: _pinController.text.trim(),
       );
 
       teacherService.setTeacherId(user.id);
@@ -41,15 +53,31 @@ class _TeacherLoginScreenState extends ConsumerState<TeacherLoginScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al conectar: $e'),
-          backgroundColor: Colors.red.shade400,
-        ),
-      );
+      // Extraer mensaje limpio del Exception
+      String msg = e.toString();
+      if (msg.startsWith('Exception: ')) msg = msg.substring(11);
+      _showError(msg);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w600))),
+          ],
+        ),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   @override
@@ -72,8 +100,8 @@ class _TeacherLoginScreenState extends ConsumerState<TeacherLoginScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFFD4E6F1), // Light blue
-              Color(0xFFE8F8F5), // Light mint/cyan
+              Color(0xFFD4E6F1),
+              Color(0xFFE8F8F5),
             ],
           ),
         ),
@@ -101,11 +129,7 @@ class _TeacherLoginScreenState extends ConsumerState<TeacherLoginScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Center(
-                            child: Text(
-                              'Ajolote Maestro\n(Imagen)',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white70),
-                            ),
+                            child: Icon(Icons.school, color: Colors.white54, size: 64),
                           ),
                         );
                       },
@@ -120,12 +144,12 @@ class _TeacherLoginScreenState extends ConsumerState<TeacherLoginScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(32),
                       border: Border.all(
-                        color: const Color(0xFFD4E6F1), // Light blue border
+                        color: const Color(0xFFD4E6F1),
                         width: 4,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFD4E6F1).withOpacity(0.5),
+                          color: const Color(0xFFD4E6F1).withValues(alpha: 0.5),
                           offset: const Offset(0, 8),
                           blurRadius: 16,
                         ),
@@ -134,8 +158,42 @@ class _TeacherLoginScreenState extends ConsumerState<TeacherLoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // ── Email ──
                         Text(
-                          'PIN de Maestro',
+                          'Correo electrónico',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: AppColors.textDark,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          autocorrect: false,
+                          decoration: InputDecoration(
+                            hintText: 'tu@correo.com',
+                            hintStyle: TextStyle(color: Colors.grey.shade400),
+                            prefixIcon: Icon(Icons.email_outlined, color: Colors.blue.shade300),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide(color: Colors.blue.shade200, width: 2),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide(color: Colors.blue.shade200, width: 2),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: const BorderSide(color: AppColors.teacherPrimary, width: 2),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // ── PIN ──
+                        Text(
+                          'PIN de acceso',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                 color: AppColors.textDark,
                                 fontWeight: FontWeight.w800,
@@ -144,11 +202,20 @@ class _TeacherLoginScreenState extends ConsumerState<TeacherLoginScreen> {
                         const SizedBox(height: 8),
                         TextField(
                           controller: _pinController,
-                          obscureText: true,
+                          obscureText: _obscurePin,
                           keyboardType: TextInputType.number,
+                          onSubmitted: (_) => _handleLogin(),
                           decoration: InputDecoration(
-                            hintText: 'Ingresa tu PIN (Ej. 1234)',
+                            hintText: 'Ej. 1234',
                             hintStyle: TextStyle(color: Colors.grey.shade400),
+                            prefixIcon: Icon(Icons.lock_outline, color: Colors.blue.shade300),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePin ? Icons.visibility_off : Icons.visibility,
+                                color: Colors.grey.shade400,
+                              ),
+                              onPressed: () => setState(() => _obscurePin = !_obscurePin),
+                            ),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(24),
@@ -165,6 +232,7 @@ class _TeacherLoginScreenState extends ConsumerState<TeacherLoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 28),
+                        // ── Botón Login ──
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -199,8 +267,8 @@ class _TeacherLoginScreenState extends ConsumerState<TeacherLoginScreen> {
                                       ),
                                       SizedBox(width: 8),
                                       Icon(Icons.login, size: 24),
-                              ],
-                            ),
+                                    ],
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 24),
