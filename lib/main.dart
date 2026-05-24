@@ -1,14 +1,19 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:provider/provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/student/domain/models/game_state.dart';
+import 'features/student/domain/repositories/database_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final repository = await SharedPreferencesRepository.init();
+  final gameState = GameState(repository);
+  await gameState.init();
 
   // ── Supabase ─────────────────────────────────────────────────────────
   await Supabase.initialize(
@@ -16,10 +21,16 @@ void main() async {
     anonKey: 'sb_publishable_jzMj4HyMNsv-EfPbPmwqsg_dH-0XveR',
   );
 
-  // GameState legacy — se mantiene durante la migración gradual.
-  await GameState.instance.init();
-
-  runApp(const ProviderScope(child: EcoQuizApp()));
+  runApp(
+    ProviderScope(
+      child: MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: gameState),
+        ],
+        child: const EcoQuizApp(),
+      ),
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -125,7 +136,7 @@ class _WebDesktopShell extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF27AE60).withOpacity(0.15),
+                      color: const Color(0xFF27AE60).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Text('🌿', style: TextStyle(fontSize: 24)),
@@ -170,13 +181,13 @@ class _WebDesktopShell extends StatelessWidget {
                 borderRadius: BorderRadius.circular(32),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
+                    color: Colors.black.withValues(alpha: 0.12),
                     blurRadius: 40,
                     spreadRadius: 2,
                     offset: const Offset(0, 8),
                   ),
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 80,
                     spreadRadius: 20,
                   ),

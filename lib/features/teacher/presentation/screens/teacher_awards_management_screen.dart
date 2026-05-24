@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/providers/service_providers.dart';
 import '../../../../core/models/models.dart';
 import '../../../student/domain/models/game_state.dart';
@@ -98,14 +99,15 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
                     iconName: iconNames[rand.nextInt(iconNames.length)],
                     colorHex: colorHexes[rand.nextInt(colorHexes.length)],
                   );
-
                   Navigator.pop(context);
+                  final gameState = context.read<GameState>();
+                  final messenger = ScaffoldMessenger.of(context);
                   try {
                     final teacherService = ref.read(teacherServiceProvider);
                     await teacherService.addReward(newReward);
 
                     // También sincronizar con GameState legacy
-                    GameState.instance.addReward(RewardData(
+                    gameState.addReward(RewardData(
                       id: newReward.id,
                       title: newReward.title,
                       subtitle: newReward.subtitle,
@@ -116,7 +118,7 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
 
                     await _loadRewards();
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text('✅ Premio agregado'),
                           backgroundColor: Colors.green,
@@ -125,7 +127,7 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
                     }
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
                       );
                     }
@@ -195,7 +197,7 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
                         Text(
                           'Agrega o elimina los premios de la tienda.',
                           style: TextStyle(
-                            color: AppColors.textDark.withOpacity(0.8),
+                            color: AppColors.textDark.withValues(alpha: 0.8),
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
@@ -215,7 +217,7 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
                           physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                           itemCount: _rewards.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 16),
+                          separatorBuilder: (_, index) => const SizedBox(height: 16),
                           itemBuilder: (context, index) {
                             final reward = _rewards[index];
                             final color = Color(_hexToColor(reward.colorHex));
@@ -229,7 +231,7 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
                               child: ListTile(
                                 contentPadding: const EdgeInsets.all(16),
                                 leading: CircleAvatar(
-                                  backgroundColor: color.withOpacity(0.2),
+                                  backgroundColor: color.withValues(alpha: 0.2),
                                   child: Icon(icon, color: color),
                                 ),
                                 title: Text(reward.title, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -237,13 +239,16 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
                                 trailing: IconButton(
                                   icon: const Icon(Icons.delete, color: Colors.red),
                                   onPressed: () async {
+                                    final gameState = context.read<GameState>();
+                                    final messenger = ScaffoldMessenger.of(context);
                                     try {
                                       final teacherService = ref.read(teacherServiceProvider);
                                       await teacherService.removeReward(reward.id);
+                                      gameState.removeReward(reward.id);
                                       await _loadRewards();
                                     } catch (e) {
                                       if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        messenger.showSnackBar(
                                           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
                                         );
                                       }

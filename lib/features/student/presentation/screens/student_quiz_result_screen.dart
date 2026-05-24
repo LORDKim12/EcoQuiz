@@ -151,7 +151,7 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen>
                           boxShadow: [
                             BoxShadow(
                               color: const Color(0xFF27AE60)
-                                  .withOpacity(_glowAnimation.value),
+                                  .withValues(alpha: _glowAnimation.value),
                               blurRadius: 30,
                               spreadRadius: 8,
                             ),
@@ -213,7 +213,7 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen>
                           color: const Color(0xFF2980B9), width: 5),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF2980B9).withOpacity(0.3),
+                          color: const Color(0xFF2980B9).withValues(alpha: 0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -255,7 +255,7 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen>
                               color: const Color(0xFF8B4513), width: 4),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF8B4513).withOpacity(0.15),
+                              color: const Color(0xFF8B4513).withValues(alpha: 0.15),
                               blurRadius: 15,
                               offset: const Offset(0, 6),
                             ),
@@ -294,7 +294,7 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen>
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color: const Color(0xFF8B4513)
-                                        .withOpacity(0.8),
+                                        .withValues(alpha: 0.8),
                                   ),
                                 ),
                               ],
@@ -317,7 +317,7 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen>
                             boxShadow: [
                               BoxShadow(
                                 color:
-                                    const Color(0xFFE67E22).withOpacity(0.4),
+                                    const Color(0xFFE67E22).withValues(alpha: 0.4),
                                 blurRadius: 10,
                               ),
                             ],
@@ -356,7 +356,7 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen>
                         ),
                         elevation: 6,
                         shadowColor:
-                            const Color(0xFF006400).withOpacity(0.4),
+                            const Color(0xFF006400).withValues(alpha: 0.4),
                       ),
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,

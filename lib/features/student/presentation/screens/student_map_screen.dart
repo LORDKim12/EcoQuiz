@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import '../../domain/data/question_bank.dart';
 import 'student_quiz_screen.dart';
@@ -48,9 +49,9 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         decoration: const BoxDecoration(
           color: Color(0xFF1E8449), // Fallback de color por si acaso
         ),
-        child: ValueListenableBuilder<List<LevelData>>(
-          valueListenable: GameState.instance.levels,
-          builder: (context, levels, child) {
+        child: Consumer<GameState>(
+          builder: (context, gameState, child) {
+            final levels = gameState.levels;
             final biomes = levels.map((l) => l.biome).toSet().toList();
             if (biomes.isEmpty) return const Center(child: Text('No hay biomas'));
             
@@ -105,7 +106,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                           int stars = 0;
                           
                           if (level.isUnlocked) {
-                            stars = GameState.instance.levelStars.value[level.id.toString()] ?? 0;
+                            stars = gameState.levelStars[level.id.toString()] ?? 0;
                           }
                           
                           if (highestUnlockedOverallLevel?.id == level.id && stars == 0) {
@@ -182,7 +183,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                                         child: Image.asset(
                                           'assets/images/eco_ajolote_mascot.png',
                                           fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => Container(color: Colors.pink.shade200),
+                                          errorBuilder: (context, error, stackTrace) => Container(color: Colors.pink.shade200),
                                         ),
                                       ),
                                     ),
@@ -203,13 +204,14 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
     );
   }
 
+
   Widget _buildCustomAppBar(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, left: 16, right: 16, bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.backgroundLight.withOpacity(0.95),
+        color: AppColors.backgroundLight.withValues(alpha: 0.95),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
       child: Row(
@@ -232,9 +234,9 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
           ),
           const Spacer(),
           // Hearts Counter Pill
-          ValueListenableBuilder<int>(
-            valueListenable: GameState.instance.hearts,
-            builder: (context, heartsCount, child) {
+          Consumer<GameState>(
+            builder: (context, gameState, child) {
+              final heartsCount = gameState.hearts;
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
@@ -257,9 +259,9 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
           ),
           const SizedBox(width: 8),
           // Star Counter Pill
-          ValueListenableBuilder<int>(
-            valueListenable: GameState.instance.totalStars,
-            builder: (context, stars, child) {
+          Consumer<GameState>(
+            builder: (context, gameState, child) {
+              final stars = gameState.totalStars;
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
@@ -296,7 +298,7 @@ class _PathPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFFAE5D3).withOpacity(0.5)
+      ..color = const Color(0xFFFAE5D3).withValues(alpha: 0.5)
       ..strokeWidth = 8
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/providers/service_providers.dart';
 import '../../domain/models/game_state.dart';
 import 'student_main_screen.dart';
@@ -29,6 +30,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
     try {
       final authService = ref.read(authServiceProvider);
       final studentService = ref.read(studentServiceProvider);
+      final gameState = context.read<GameState>();
 
       // Login con Supabase
       final user = await authService.loginStudent(
@@ -42,8 +44,8 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
       studentService.setStudentId(user.id);
 
       // Sincronizar GameState desde Supabase (niveles, premios, estrellas, etc.)
-      GameState.instance.setPlayerName(user.name);
-      await GameState.instance.syncFromSupabase(user.id);
+      gameState.setPlayerName(user.name);
+      await gameState.syncFromSupabase(user.id);
 
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -136,7 +138,7 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFFDE8E1).withOpacity(0.5),
+                          color: const Color(0xFFFDE8E1).withValues(alpha: 0.5),
                           offset: const Offset(0, 8),
                           blurRadius: 16,
                         ),

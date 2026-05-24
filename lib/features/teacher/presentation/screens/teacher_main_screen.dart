@@ -35,7 +35,7 @@ class _TeacherMainScreenState extends State<TeacherMainScreen> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
@@ -68,7 +68,7 @@ class _TeacherMainScreenState extends State<TeacherMainScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.studentPrimary.withOpacity(0.3) : Colors.transparent,
+            color: isSelected ? AppColors.studentPrimary.withValues(alpha: 0.3) : Colors.transparent,
             borderRadius: BorderRadius.circular(24),
           ),
           child: Column(

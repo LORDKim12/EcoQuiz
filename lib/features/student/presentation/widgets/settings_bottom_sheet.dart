@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 
@@ -57,7 +58,7 @@ class _SettingsSheetContentState extends State<_SettingsSheetContent> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.studentBorder.withOpacity(0.1),
+                    color: AppColors.studentBorder.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.settings, color: AppColors.studentBorder, size: 26),
@@ -116,7 +117,7 @@ class _SettingsSheetContentState extends State<_SettingsSheetContent> {
                   title: 'Restaurar corazones',
                   subtitle: 'Volver a tener 5 ❤️',
                   onTap: () {
-                    GameState.instance.restoreHearts();
+                    context.read<GameState>().restoreHearts();
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -255,7 +256,7 @@ class _SettingsSheetContentState extends State<_SettingsSheetContent> {
           Switch(
             value: value,
             activeTrackColor: const Color(0xFF27AE60),
-            activeColor: Colors.white,
+            activeThumbColor: Colors.white,
             inactiveThumbColor: Colors.white,
             inactiveTrackColor: Colors.grey.shade300,
             onChanged: onChanged,
@@ -338,7 +339,7 @@ class _SettingsSheetContentState extends State<_SettingsSheetContent> {
               width: 70,
               height: 70,
               decoration: BoxDecoration(
-                color: const Color(0xFFF39C12).withOpacity(0.15),
+                color: const Color(0xFFF39C12).withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: const Center(
@@ -391,7 +392,7 @@ class _SettingsSheetContentState extends State<_SettingsSheetContent> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      GameState.instance.resetAllProgress();
+                      context.read<GameState>().resetAllProgress();
                       Navigator.pop(dialogContext); // Cierra diálogo
                       Navigator.pop(context); // Cierra bottom sheet
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -451,7 +452,7 @@ class _SettingsSheetContentState extends State<_SettingsSheetContent> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.studentBorder.withOpacity(0.1),
+                color: AppColors.studentBorder.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Center(

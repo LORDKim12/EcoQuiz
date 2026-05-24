@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../domain/models/quiz_model.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import 'student_quiz_result_screen.dart';
 import 'student_level_complete_screen.dart';
@@ -73,8 +74,8 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
   }
 
   void _onTimeUp() {
-    GameState.instance.deductHeart();
-    final remaining = GameState.instance.hearts.value;
+    context.read<GameState>().deductHeart();
+    final remaining = context.read<GameState>().hearts;
 
     if (remaining <= 0) {
       _showGameOverDialog();
@@ -153,10 +154,14 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
               } else {
                 // Quiz finished, show level complete screen
                 int earned = 1;
-                final h = GameState.instance.hearts.value;
-                if (h == 5) earned = 3;
-                else if (h >= 3) earned = 2;
-                else if (h <= 0) earned = 0;
+                final h = context.read<GameState>().hearts;
+                if (h == 5) {
+                  earned = 3;
+                } else if (h >= 3) {
+                  earned = 2;
+                } else if (h <= 0) {
+                  earned = 0;
+                }
 
                 Navigator.pushReplacement(
                   context,
@@ -178,7 +183,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
     } else {
       // Wrong answer — deduct heart, shake, and show correct
       _timer?.cancel();
-      GameState.instance.deductHeart();
+      context.read<GameState>().deductHeart();
       
       // Shake animation
       _shakeController.reset();
@@ -190,7 +195,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
         _showCorrectAnswer = true;
       });
 
-      final remainingHearts = GameState.instance.hearts.value;
+      final remainingHearts = context.read<GameState>().hearts;
 
       // Game Over — sin corazones
       if (remainingHearts <= 0) {
@@ -251,7 +256,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE74C3C).withOpacity(0.15),
+                  color: const Color(0xFFE74C3C).withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
@@ -285,7 +290,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(dialogContext);
-                    GameState.instance.restoreHearts();
+                    context.read<GameState>().restoreHearts();
                     setState(() {
                       _currentIndex = 0;
                       _showHint = false;
@@ -323,7 +328,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                 child: OutlinedButton(
                   onPressed: () {
                     Navigator.pop(dialogContext);
-                    GameState.instance.restoreHearts();
+                    context.read<GameState>().restoreHearts();
                     Navigator.pop(context);
                   },
                   style: OutlinedButton.styleFrom(
@@ -413,7 +418,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: timerColor.withOpacity(0.15),
+              color: timerColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: timerColor, width: 2),
             ),
@@ -517,7 +522,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                           borderRadius: BorderRadius.circular(32),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               offset: const Offset(0, -10),
                               blurRadius: 20,
                             ),
@@ -655,7 +660,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                     ? const Color(0xFF1B5E20)
                     : isWrong
                         ? const Color(0xFFB71C1C)
-                        : Colors.black.withOpacity(0.1),
+                        : Colors.black.withValues(alpha: 0.1),
                 width: (isCorrect || isWrong) ? 3 : 2,
               ),
             ),

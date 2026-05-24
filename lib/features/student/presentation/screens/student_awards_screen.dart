@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import '../widgets/settings_bottom_sheet.dart';
 
@@ -31,7 +32,7 @@ class StudentAwardsScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFD35400).withOpacity(0.3),
+                      color: const Color(0xFFD35400).withValues(alpha: 0.3),
                       offset: const Offset(0, 8),
                       blurRadius: 16,
                     ),
@@ -42,7 +43,7 @@ class StudentAwardsScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.stars, color: Colors.white, size: 40),
@@ -61,9 +62,9 @@ class StudentAwardsScreen extends StatelessWidget {
                               letterSpacing: 1.2,
                             ),
                           ),
-                          ValueListenableBuilder<int>(
-                            valueListenable: GameState.instance.totalStars,
-                            builder: (context, totalStars, child) {
+                          Consumer<GameState>(
+                            builder: (context, gameState, child) {
+                              final totalStars = gameState.totalStars;
                               return Text(
                                 '$totalStars ⭐',
                                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
@@ -77,14 +78,14 @@ class StudentAwardsScreen extends StatelessWidget {
                       ),
                     ),
                     // Cantidad de premios comprados
-                    ValueListenableBuilder<List<String>>(
-                      valueListenable: GameState.instance.purchasedRewards,
-                      builder: (context, purchased, _) {
+                    Consumer<GameState>(
+                      builder: (context, gameState, _) {
+                        final purchased = gameState.purchasedRewards;
                         if (purchased.isEmpty) return const SizedBox();
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.25),
+                            color: Colors.white.withValues(alpha: 0.25),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
@@ -141,15 +142,11 @@ class StudentAwardsScreen extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: ValueListenableBuilder<List<RewardData>>(
-                  valueListenable: GameState.instance.rewards,
-                  builder: (context, rewards, child) {
-                    return ValueListenableBuilder<int>(
-                      valueListenable: GameState.instance.totalStars,
-                      builder: (context, totalStars, child) {
-                        return ValueListenableBuilder<List<String>>(
-                          valueListenable: GameState.instance.purchasedRewards,
-                          builder: (context, purchased, child) {
+                child: Consumer<GameState>(
+                  builder: (context, gameState, child) {
+                    final rewards = gameState.rewards;
+                    final totalStars = gameState.totalStars;
+                    final purchased = gameState.purchasedRewards;
                             if (rewards.isEmpty) {
                               return Center(
                                 child: Column(
@@ -200,10 +197,6 @@ class StudentAwardsScreen extends StatelessWidget {
                                 );
                               },
                             );
-                          },
-                        );
-                      },
-                    );
                   },
                 ),
               ),
@@ -231,17 +224,17 @@ class StudentAwardsScreen extends StatelessWidget {
           color: isPurchased
               ? const Color(0xFF27AE60)
               : isAffordable
-                  ? color.withOpacity(0.3)
+                  ? color.withValues(alpha: 0.3)
                   : Colors.grey.shade300,
           width: isPurchased ? 3 : 2,
         ),
         boxShadow: [
           BoxShadow(
             color: isPurchased
-                ? const Color(0xFF27AE60).withOpacity(0.15)
+                ? const Color(0xFF27AE60).withValues(alpha: 0.15)
                 : isAffordable
-                    ? color.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
+                    ? color.withValues(alpha: 0.1)
+                    : Colors.black.withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -256,7 +249,7 @@ class StudentAwardsScreen extends StatelessWidget {
                 color: isPurchased
                     ? const Color(0xFFD5F5E3)
                     : isAffordable
-                        ? color.withOpacity(0.1)
+                        ? color.withValues(alpha: 0.1)
                         : Colors.grey.shade100,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
               ),
@@ -386,7 +379,7 @@ class StudentAwardsScreen extends StatelessWidget {
               width: 70,
               height: 70,
               decoration: BoxDecoration(
-                color: Color(reward.colorValue).withOpacity(0.15),
+                color: Color(reward.colorValue).withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -445,8 +438,9 @@ class StudentAwardsScreen extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      final success = GameState.instance.spendStars(reward.id, reward.cost);
+                    onPressed: () async {
+                      final success = await context.read<GameState>().spendStars(reward.id, reward.cost);
+                      if (!context.mounted) return;
                       Navigator.pop(dialogContext);
 
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -498,9 +492,9 @@ class StudentAwardsScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, left: 16, right: 16, bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.backgroundLight.withOpacity(0.95),
+        color: AppColors.backgroundLight.withValues(alpha: 0.95),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
       child: Row(
