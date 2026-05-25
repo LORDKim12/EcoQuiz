@@ -75,14 +75,39 @@ class SupabaseStudentService implements StudentService {
   // ── Progreso / Estrellas ─────────────────────────────────────────────
   @override
   Future<void> saveStars(int levelId, int starsEarned) async {
-    // Upsert: insertar o actualizar si ya existe
+    // 1. Obtener las estrellas anteriores del alumno para este nivel
+    final previousResult = await _client
+        .from('student_progress')
+        .select('stars_earned')
+        .eq('student_id', _sid)
+        .eq('level_id', levelId)
+        .maybeSingle();
+
+    int previousStars = 0;
+    if (previousResult != null) {
+      previousStars = previousResult['stars_earned'] as int;
+    }
+
+    // 2. Calcular cuántas estrellas nuevas ganó
+    int starsAdded = starsEarned - previousStars;
+
+    // 3. Upsert: insertar o actualizar si ya existe (manteniendo el récord)
     await _client.from('student_progress').upsert({
       'student_id': _sid,
       'level_id': levelId,
-      'stars_earned': starsEarned,
+      'stars_earned': starsEarned > previousStars ? starsEarned : previousStars,
       'is_completed': true,
       'completed_at': DateTime.now().toIso8601String(),
     }, onConflict: 'student_id,level_id');
+
+    // 4. Si ganó estrellas nuevas (o es su primera vez), registrar en la bitácora
+    if (starsAdded > 0) {
+      await _client.from('activity_log').insert({
+        'student_id': _sid,
+        'level_id': levelId,
+        'stars_added': starsAdded,
+      });
+    }
   }
 
   @override

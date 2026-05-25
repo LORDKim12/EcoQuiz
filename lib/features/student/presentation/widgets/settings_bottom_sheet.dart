@@ -399,7 +399,7 @@ class _SettingsSheetContentState extends State<_SettingsSheetContent> {
                         SnackBar(
                           content: const Row(
                             children: [
-                              Text('🔄', style: TextStyle(fontSize: 20)),
+                              Icon(Icons.refresh, size: 20, color: AppColors.textBrown),
                               SizedBox(width: 8),
                               Text(
                                 '¡Progreso reiniciado!',
@@ -456,7 +456,7 @@ class _SettingsSheetContentState extends State<_SettingsSheetContent> {
                 shape: BoxShape.circle,
               ),
               child: const Center(
-                child: Text('🌿', style: TextStyle(fontSize: 40)),
+                child: Icon(Icons.eco, size: 40, color: Colors.green),
               ),
             ),
             const SizedBox(height: 16),
@@ -498,7 +498,7 @@ class _SettingsSheetContentState extends State<_SettingsSheetContent> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('🇲🇽', style: TextStyle(fontSize: 20)),
+                  Icon(Icons.public, size: 20, color: AppColors.textBrown),
                   SizedBox(width: 8),
                   Text(
                     'Hecho en México',

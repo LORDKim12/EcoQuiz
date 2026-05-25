@@ -31,7 +31,7 @@ abstract class TeacherService {
 
   // ── Recompensas ──────────────────────────────────────────────────────
   /// Obtener las recompensas del grupo.
-  Future<List<RewardModel>> getRewards();
+  Future<List<RewardModel>> getRewards({String? groupId});
 
   /// Agregar una recompensa.
   Future<void> addReward(RewardModel reward);
@@ -42,6 +42,9 @@ abstract class TeacherService {
   // ── Progreso / Analytics ─────────────────────────────────────────────
   /// Obtener el progreso de todos los alumnos de un grupo.
   Future<Map<String, Map<String, int>>> getGroupProgress(String groupId);
+
+  /// Obtener estadísticas generales del grupo.
+  Future<Map<String, dynamic>> getGroupStats(String groupId);
 
   /// Obtener los intentos de quiz de un alumno.
   Future<List<QuizAttemptModel>> getStudentAttempts(String studentId);

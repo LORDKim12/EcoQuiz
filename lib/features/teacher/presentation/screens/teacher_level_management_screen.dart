@@ -74,15 +74,68 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
               child: Consumer<GameState>(
                 builder: (context, gameState, child) {
                   final levels = gameState.levels;
-                  return ListView.separated(
+                  
+                  // Agrupar niveles por bioma
+                  final Map<String, List<LevelData>> biomes = {};
+                  for (final level in levels) {
+                    if (!biomes.containsKey(level.biome)) {
+                      biomes[level.biome] = [];
+                    }
+                    biomes[level.biome]!.add(level);
+                  }
+                  
+                  final biomeKeys = biomes.keys.toList();
+
+                  return ListView.builder(
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8).copyWith(bottom: 80),
-                    itemCount: levels.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 16),
+                    itemCount: biomeKeys.length,
                     itemBuilder: (context, index) {
-                      // Mostrar del último al primero
-                      final level = levels[levels.length - 1 - index];
-                      return _buildZoneCard(context, level);
+                      final biome = biomeKeys[index];
+                      final biomeLevels = biomes[biome]!;
+                      
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          side: BorderSide(color: Colors.grey.shade300, width: 2),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: ExpansionTile(
+                          backgroundColor: Colors.white,
+                          collapsedBackgroundColor: Colors.white,
+                          title: Text(
+                            biome,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.textBrown,
+                            ),
+                          ),
+                          leading: const CircleAvatar(
+                            backgroundColor: Color(0xFFE8F6F3),
+                            child: Icon(Icons.public, color: Color(0xFF1ABC9C)),
+                          ),
+                          childrenPadding: const EdgeInsets.all(16),
+                          children: biomeLevels.map((level) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => TeacherQuestionManagementScreen(initialLevelId: level.id),
+                                    ),
+                                  );
+                                },
+                                child: _buildZoneCard(context, level),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      );
                     },
                   );
                 },
@@ -197,7 +250,7 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
                       ],
                       if (hasBackground) ...[
                         const SizedBox(width: 6),
-                        const Text('🖼️', style: TextStyle(fontSize: 14)),
+                        const Icon(Icons.image, size: 14, color: Colors.grey),
                       ],
                     ],
                   ),

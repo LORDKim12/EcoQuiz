@@ -21,7 +21,7 @@ class _TeacherMainScreenState extends State<TeacherMainScreen> {
   final List<Widget> _screens = [
     const StudentMapScreen(isTeacher: true),
     const StudentJournalScreen(),
-    const StudentAwardsScreen(),
+    const StudentAwardsScreen(isTeacher: true),
     const TeacherProfileScreen(),
   ];
 

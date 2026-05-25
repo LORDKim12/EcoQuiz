@@ -235,7 +235,18 @@ class _TeacherAwardsManagementScreenState extends ConsumerState<TeacherAwardsMan
                                   child: Icon(icon, color: color),
                                 ),
                                 title: Text(reward.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                subtitle: Text('${reward.subtitle} • ⭐️ ${reward.cost}'),
+                                subtitle: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        '${reward.subtitle} • ',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const Icon(Icons.star, size: 14, color: Colors.amber),
+                                    Text(' ${reward.cost}'),
+                                  ],
+                                ),
                                 trailing: IconButton(
                                   icon: const Icon(Icons.delete, color: Colors.red),
                                   onPressed: () async {

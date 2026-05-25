@@ -121,18 +121,18 @@ class SupabaseTeacherService implements TeacherService {
 
   // ── Recompensas ──────────────────────────────────────────────────────
   @override
-  Future<List<RewardModel>> getRewards() async {
-    final groups = await getGroups();
-    if (groups.isEmpty) return [];
+  Future<List<RewardModel>> getRewards({String? groupId}) async {
+    String? targetGroupId = groupId;
+    
+    if (targetGroupId == null) {
+      final groups = await getGroups();
+      if (groups.isEmpty) return [];
+      targetGroupId = groups.first.id;
+    }
+    
+    final response = await _client.from('rewards').select().eq('group_id', targetGroupId);
 
-    // Obtener rewards de TODOS los grupos del maestro
-    final groupIds = groups.map((g) => g.id).toList();
-    final result = await _client
-        .from('rewards')
-        .select()
-        .inFilter('group_id', groupIds);
-
-    return result.map((json) => RewardModel.fromJson(json)).toList();
+    return (response as List).map((json) => RewardModel.fromJson(json)).toList();
   }
 
   @override
@@ -181,6 +181,87 @@ class SupabaseTeacherService implements TeacherService {
     }
 
     return progress;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getGroupStats(String groupId) async {
+    final members = await getStudentsInGroup(groupId);
+    final studentCount = members.length;
+
+    final levels = await getLevels();
+    final activeLevelsCount = levels.where((l) => l.isActive).length;
+
+    final progress = await getGroupProgress(groupId);
+    
+    final levelBiomeMap = <String, String>{};
+    for (final l in levels) {
+      levelBiomeMap[l.id.toString()] = l.biome;
+    }
+
+    final biomeStarsSum = <String, int>{};
+    int totalStarsEarnedAll = 0;
+
+    for (final studentName in progress.keys) {
+      final studentStats = progress[studentName]!;
+      for (final entry in studentStats.entries) {
+        final levelId = entry.key;
+        final stars = entry.value;
+        totalStarsEarnedAll += stars;
+
+        final biome = levelBiomeMap[levelId] ?? 'Desconocido';
+        biomeStarsSum[biome] = (biomeStarsSum[biome] ?? 0) + stars;
+      }
+    }
+
+    final biomeAverages = <Map<String, dynamic>>[];
+    for (final l in levels) {
+      final biome = l.biome;
+      final sum = biomeStarsSum[biome] ?? 0;
+      final avg = studentCount > 0 ? sum / studentCount : 0.0;
+      
+      if (l.isActive) {
+         biomeAverages.add({
+           'biome': biome,
+           'label': l.title,
+           'avgStars': avg,
+         });
+      }
+    }
+
+    final overallAverage = studentCount > 0 ? totalStarsEarnedAll / studentCount : 0.0;
+
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+
+    final activityLogs = await _client
+        .from('activity_log')
+        .select('student_id, stars_added')
+        .gte('created_at', startOfWeek.toIso8601String());
+
+    final ranking = <Map<String, dynamic>>[];
+    for (final m in members) {
+      int weeklyStars = 0;
+      for (final log in activityLogs) {
+        if (log['student_id'] == m.id) {
+          weeklyStars += (log['stars_added'] as int);
+        }
+      }
+      ranking.add({
+        'name': m.name,
+        'stars': weeklyStars,
+      });
+    }
+
+    ranking.sort((a, b) => (b['stars'] as int).compareTo(a['stars'] as int));
+
+    return {
+      'studentCount': studentCount,
+      'activeLevelsCount': activeLevelsCount,
+      'overallAverage': overallAverage,
+      'biomeAverages': biomeAverages,
+      'ranking': ranking,
+    };
   }
 
   @override

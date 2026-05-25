@@ -9,11 +9,13 @@ import '../../domain/models/game_state.dart';
 class StudentLevelCompleteScreen extends StatefulWidget {
   final int levelIndex;
   final int earnedStars;
+  final bool isTeacher;
 
   const StudentLevelCompleteScreen({
     super.key,
     required this.levelIndex,
     required this.earnedStars,
+    this.isTeacher = false,
   });
 
   @override
@@ -96,13 +98,17 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
     // Secuencia de animaciones
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final gameState = context.read<GameState>();
-      gameState.unlockCard(safeCardIndex);
-      gameState.saveStarsForLevel(widget.levelIndex, widget.earnedStars);
-
-      if (widget.earnedStars > 0) {
-        gameState.setLevelUnlocked(widget.levelIndex + 1, true);
+      if (!widget.isTeacher) {
+        gameState.unlockCard(safeCardIndex);
+        gameState.saveStarsForLevel(widget.levelIndex, widget.earnedStars);
       }
 
+      if (!widget.isTeacher) {
+        if (widget.earnedStars > 0) {
+          gameState.setLevelUnlocked(widget.levelIndex + 1, true);
+          gameState.addXP(50);
+        }
+      }
       gameState.restoreHearts();
 
       // Disparar animaciones en secuencia
@@ -162,9 +168,10 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
                           scale: _pulseAnimation.value,
                           child: child,
                         ),
-                        child: const Text(
-                          '🎉',
-                          style: TextStyle(fontSize: 60),
+                        child: const Icon(
+                          Icons.celebration,
+                          size: 60,
+                          color: Color(0xFFF39C12),
                         ),
                       ),
                     ),
@@ -591,13 +598,13 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
   String _getStarsMessage() {
     switch (widget.earnedStars) {
       case 3:
-        return '¡Perfecto! 🌟 ¡Eres un explorador experto!';
+        return '¡Perfecto! ¡Eres un explorador experto!';
       case 2:
-        return '¡Muy bien! 💪 ¡Sigue así, explorador!';
+        return '¡Muy bien! ¡Sigue así, explorador!';
       case 1:
-        return '¡Buen intento! 🌱 ¡Puedes mejorar!';
+        return '¡Buen intento! ¡Puedes mejorar!';
       default:
-        return '¡No te rindas! 💚 ¡Inténtalo de nuevo!';
+        return '¡No te rindas! ¡Inténtalo de nuevo!';
     }
   }
 }

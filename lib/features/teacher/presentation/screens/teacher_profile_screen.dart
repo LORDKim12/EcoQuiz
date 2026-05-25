@@ -167,22 +167,22 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildActionButton(
-                label: 'Gestión de Mundos / Biomas',
-                icon: Icons.public,
-                bgColor: const Color(0xFFD6EAF8), // Light blue
-                textColor: AppColors.textDark,
-                iconBgColor: Colors.black.withValues(alpha: 0.05),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            const TeacherLevelManagementScreen()),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
+              // _buildActionButton(
+              //   label: 'Gestión de Mundos / Biomas',
+              //   icon: Icons.public,
+              //   bgColor: const Color(0xFFD6EAF8), // Light blue
+              //   textColor: AppColors.textDark,
+              //   iconBgColor: Colors.black.withValues(alpha: 0.05),
+              //   onTap: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(
+              //           builder: (context) =>
+              //               const TeacherLevelManagementScreen()),
+              //     );
+              //   },
+              // ),
+              // const SizedBox(height: 16),
               _buildActionButton(
                 label: 'Gestión de Premios',
                 icon: Icons.card_giftcard,
@@ -215,22 +215,22 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildActionButton(
-                label: 'Banco de Preguntas',
-                icon: Icons.quiz,
-                bgColor: const Color(0xFFFFF3CD), // Light yellow
-                textColor: AppColors.textDark,
-                iconBgColor: Colors.black.withValues(alpha: 0.05),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            const TeacherQuestionManagementScreen()),
-                  );
-                },
-              ),
-              const SizedBox(height: 32),
+              // _buildActionButton(
+              //   label: 'Banco de Preguntas',
+              //   icon: Icons.quiz,
+              //   bgColor: const Color(0xFFFFF3CD), // Light yellow
+              //   textColor: AppColors.textDark,
+              //   iconBgColor: Colors.black.withValues(alpha: 0.05),
+              //   onTap: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(
+              //           builder: (context) =>
+              //               const TeacherQuestionManagementScreen()),
+              //     );
+              //   },
+              // ),
+              // const SizedBox(height: 32),
 
               // Botón de Cerrar Sesión
               SizedBox(

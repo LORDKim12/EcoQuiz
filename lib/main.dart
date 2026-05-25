@@ -4,15 +4,15 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:math';
+
 import 'core/theme/app_theme.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/student/domain/models/game_state.dart';
-import 'features/student/domain/repositories/database_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final repository = await SharedPreferencesRepository.init();
-  final gameState = GameState(repository);
+  final gameState = GameState();
   await gameState.init();
 
   // ── Supabase ─────────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ class _WebDesktopShell extends StatelessWidget {
                       color: const Color(0xFF27AE60).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Text('🌿', style: TextStyle(fontSize: 24)),
+                    child: const Icon(Icons.eco, color: Colors.green, size: 24),
                   ),
                   const SizedBox(width: 12),
                   const Column(
@@ -210,7 +210,7 @@ class _WebDesktopShell extends StatelessWidget {
                   Icon(Icons.school, color: Colors.grey.shade500, size: 16),
                   const SizedBox(width: 6),
                   Text(
-                    'Alineado con programas de la SEP  •  3° a 6° de primaria  •  Hecho en México 🇲🇽',
+                    'Alineado con programas de la SEP  •  3° a 6° de primaria  •  Hecho en México',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey.shade500,
@@ -229,44 +229,85 @@ class _WebDesktopShell extends StatelessWidget {
   /// Emojis de fauna mexicana como decoración del fondo en pantallas amplias.
   List<Widget> _buildBackgroundDecorations() {
     final decorations = <Widget>[];
+    final random = Random();
 
     // Lado izquierdo
-    const leftItems = [
-      (60.0, 200.0, '🌵', 28.0),
-      (120.0, 600.0, '🦎', 24.0),
-      (50.0, 400.0, '🌺', 22.0),
-      (90.0, 750.0, '🐢', 26.0),
+    final leftItems = [
+      (60.0, 200.0, Icons.eco, 28.0),
+      (120.0, 600.0, Icons.bug_report, 24.0),
+      (50.0, 400.0, Icons.local_florist, 22.0),
+      (90.0, 750.0, Icons.pets, 26.0),
     ];
 
-    for (final (left, top, emoji, size) in leftItems) {
+    for (int i = 0; i < leftItems.length; i++) {
+      final item = leftItems[i];
+      final left = item.$1;
+      final top = item.$2;
+      final seed = i * 100.0;
+      final iconData = item.$3;
+      final size = item.$4;
+
       decorations.add(
         Positioned(
           left: left,
           top: top,
-          child: Opacity(
-            opacity: 0.12,
-            child: Text(emoji, style: TextStyle(fontSize: size, decoration: TextDecoration.none)),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: Duration(milliseconds: 3000 + random.nextInt(2000)),
+            curve: Curves.easeInOutSine,
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(
+                  sin(value * pi * 2 + seed) * 15,
+                  cos(value * pi * 2 + seed) * 15,
+                ),
+                child: Opacity(
+                  opacity: (0.4 + sin(value * pi) * 0.4).clamp(0.2, 0.8),
+                  child: Icon(iconData, size: size, color: Colors.green.withValues(alpha: 0.5)),
+                ),
+              );
+            },
           ),
         ),
       );
     }
 
     // Lado derecho
-    const rightItems = [
-      (80.0, 150.0, '🦜', 26.0),
-      (100.0, 350.0, '🌿', 30.0),
-      (60.0, 550.0, '🐟', 24.0),
-      (120.0, 700.0, '🦋', 28.0),
+    final rightItems = [
+      (80.0, 150.0, Icons.emoji_nature, 26.0),
+      (100.0, 350.0, Icons.park, 30.0),
+      (60.0, 550.0, Icons.water, 24.0),
+      (120.0, 700.0, Icons.filter_vintage, 28.0),
     ];
 
-    for (final (right, top, emoji, size) in rightItems) {
+    for (int i = 0; i < rightItems.length; i++) {
+      final item = rightItems[i];
+      final right = item.$1;
+      final top = item.$2;
+      final seed = i * 100.0;
+      final iconData = item.$3;
+      final size = item.$4;
+
       decorations.add(
         Positioned(
           right: right,
           top: top,
-          child: Opacity(
-            opacity: 0.12,
-            child: Text(emoji, style: TextStyle(fontSize: size, decoration: TextDecoration.none)),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: Duration(milliseconds: 3000 + random.nextInt(2000)),
+            curve: Curves.easeInOutSine,
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(
+                  sin(value * pi * 2 + seed) * 15,
+                  cos(value * pi * 2 + seed) * 15,
+                ),
+                child: Opacity(
+                  opacity: (0.4 + sin(value * pi) * 0.4).clamp(0.2, 0.8),
+                  child: Icon(iconData, size: size, color: Colors.green.withValues(alpha: 0.5)),
+                ),
+              );
+            },
           ),
         ),
       );

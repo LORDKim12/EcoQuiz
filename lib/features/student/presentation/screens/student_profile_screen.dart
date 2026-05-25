@@ -5,8 +5,108 @@ import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import '../widgets/settings_bottom_sheet.dart';
 
-class StudentProfileScreen extends StatelessWidget {
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class StudentProfileScreen extends StatefulWidget {
   const StudentProfileScreen({super.key});
+
+  @override
+  State<StudentProfileScreen> createState() => _StudentProfileScreenState();
+}
+
+class _StudentProfileScreenState extends State<StudentProfileScreen> {
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _ranking = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRanking();
+  }
+
+  Future<void> _fetchRanking() async {
+    try {
+      final gameState = Provider.of<GameState>(context, listen: false);
+      final groupCode = gameState.playerGroup;
+      final playerName = gameState.playerName;
+      final client = Supabase.instance.client;
+
+      final groupResult = await client
+          .from('groups')
+          .select('id')
+          .eq('code', groupCode)
+          .maybeSingle();
+
+      if (groupResult == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+
+      final groupId = groupResult['id'];
+
+      final members = await client
+          .from('group_members')
+          .select('student_id, profiles!inner(name, created_at)')
+          .eq('group_id', groupId);
+
+      // Calcular el inicio de la semana actual (Lunes a las 00:00:00)
+      final now = DateTime.now();
+      final monday = now.subtract(Duration(days: now.weekday - 1));
+      final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+
+      // Buscar registros de actividad solo de esta semana
+      final activityLogs = await client
+          .from('activity_log')
+          .select('student_id, stars_added')
+          .gte('created_at', startOfWeek.toIso8601String());
+
+      List<Map<String, dynamic>> newRanking = [];
+
+      for (final m in members) {
+        final sId = m['student_id'];
+        final name = m['profiles']['name'] as String;
+
+        // Sumar solo las estrellas ganadas ESTA semana (ignorando compras)
+        int weeklyStars = 0;
+        for (final log in activityLogs) {
+          if (log['student_id'] == sId) {
+            weeklyStars += (log['stars_added'] as int);
+          }
+        }
+
+        newRanking.add({
+          'name': name,
+          'stars': weeklyStars,
+          'isCurrentUser': name == playerName,
+        });
+      }
+
+      newRanking.sort((a, b) => (b['stars'] as int).compareTo(a['stars'] as int));
+
+      final colors = [
+        const Color(0xFF005A9C),
+        const Color(0xFF27AE60),
+        const Color(0xFFE74C3C),
+        const Color(0xFF8E44AD),
+      ];
+
+      for (int i = 0; i < newRanking.length; i++) {
+        final isMe = newRanking[i]['isCurrentUser'] as bool;
+        newRanking[i]['progressColor'] = isMe ? const Color(0xFFF39C12) : colors[i % colors.length];
+        newRanking[i]['avatarColor'] = isMe ? Colors.orange.shade200 : colors[i % colors.length].withValues(alpha: 0.3);
+      }
+
+      if (mounted) {
+        setState(() {
+          _ranking = newRanking;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching ranking: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,58 +127,62 @@ class StudentProfileScreen extends StatelessWidget {
               
               const SizedBox(height: 32),
               
-              // 2. Título del Ranking
-              Text(
-                'Ranking del Grupo — Semana 3',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.textDark,
-                      fontSize: 18,
-                    ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Mira cómo van tus compañeros en la expedición educativa.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade700,
-                      fontWeight: FontWeight.w600,
-                    ),
+              // 2. Título del Ranking Dinámico
+              Builder(
+                builder: (context) {
+                  final now = DateTime.now();
+                  final monday = now.subtract(Duration(days: now.weekday - 1));
+                  final sunday = monday.add(const Duration(days: 6));
+                  final formattedMonday = "${monday.day.toString().padLeft(2, '0')}/${monday.month.toString().padLeft(2, '0')}";
+                  final formattedSunday = "${sunday.day.toString().padLeft(2, '0')}/${sunday.month.toString().padLeft(2, '0')}";
+                  
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ranking Semanal ($formattedMonday - $formattedSunday)',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: AppColors.textDark,
+                              fontSize: 18,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Mira el progreso de tus compañeros durante esta semana.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  );
+                }
               ),
               
               const SizedBox(height: 24),
               
               // 3. Lista de Ranking
-              Consumer<GameState>(
-                builder: (context, gameState, child) {
-                  final myStars = gameState.totalStars;
-                  final List<Map<String, dynamic>> students = [
-                    {'name': 'Sofía Ramírez', 'stars': 30, 'progressColor': const Color(0xFF005A9C), 'avatarColor': Colors.blue.shade200, 'isCurrentUser': false},
-                    {'name': 'Ana López', 'stars': 24, 'progressColor': const Color(0xFF27AE60), 'avatarColor': Colors.green.shade200, 'isCurrentUser': false},
-                    {'name': 'Carlos Méndez', 'stars': 9, 'progressColor': const Color(0xFFE74C3C), 'avatarColor': Colors.red.shade200, 'isCurrentUser': false},
-                    {'name': gameState.playerName, 'stars': myStars, 'progressColor': const Color(0xFFF39C12), 'avatarColor': Colors.orange.shade200, 'isCurrentUser': true},
-                  ];
-
-                  // Sort by stars descending
-                  students.sort((a, b) => (b['stars'] as int).compareTo(a['stars'] as int));
-
-                  return Column(
-                    children: students.map((s) {
-                      // Calcular progreso falso basado en estrellas (max 40)
-                      final progress = (s['stars'] as int) / 40.0;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildRankingCard(
-                          name: s['name'] as String,
-                          stars: s['stars'] as int,
-                          progress: progress.clamp(0.0, 1.0),
-                          progressColor: s['progressColor'] as Color,
-                          avatarColor: s['avatarColor'] as Color,
-                          isCurrentUser: s['isCurrentUser'] as bool,
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF27AE60)))
+                  : _ranking.isEmpty
+                      ? const Center(child: Text('Aún no hay progreso en el grupo.'))
+                      : Column(
+                          children: _ranking.map((s) {
+                            // Calcular progreso falso basado en estrellas (max 40)
+                            final progress = (s['stars'] as int) / 40.0;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildRankingCard(
+                                name: s['name'] as String,
+                                stars: s['stars'] as int,
+                                progress: progress.clamp(0.0, 1.0),
+                                progressColor: s['progressColor'] as Color,
+                                avatarColor: s['avatarColor'] as Color,
+                                isCurrentUser: s['isCurrentUser'] as bool,
+                              ),
+                            );
+                          }).toList(),
                         ),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
               
               const SizedBox(height: 32),
               
@@ -166,12 +270,14 @@ class StudentProfileScreen extends StatelessWidget {
                     color: AppColors.studentPrimary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    'Grupo: 4B',
-                    style: TextStyle(
-                      color: AppColors.studentBorder,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                  child: Consumer<GameState>(
+                    builder: (context, gameState, _) => Text(
+                      'Grupo: ${gameState.playerGroup}',
+                      style: const TextStyle(
+                        color: AppColors.studentBorder,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ),

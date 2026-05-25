@@ -153,10 +153,11 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (context) => StudentQuizScreen(
-                                                  questions: QuestionBank.getForBiome(level.id),
-                                                  levelIndex: level.id,
-                                                ),
+                                                  builder: (context) => StudentQuizScreen(
+                                                    questions: QuestionBank.getForBiome(level.id),
+                                                    levelIndex: level.id,
+                                                    isTeacher: widget.isTeacher,
+                                                  ),
                                               ),
                                             );
                                           }
@@ -234,54 +235,57 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
           ),
           const Spacer(),
           // Hearts Counter Pill
-          Consumer<GameState>(
-            builder: (context, gameState, child) {
-              final heartsCount = gameState.hearts;
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE74C3C),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF922B21), width: 2),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.favorite, color: Colors.white, size: 18),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$heartsCount',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
+          if (!widget.isTeacher)
+            Consumer<GameState>(
+              builder: (context, gameState, child) {
+                final heartsCount = gameState.hearts;
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE74C3C),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF922B21), width: 2),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.favorite, color: Colors.white, size: 18),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$heartsCount',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          if (!widget.isTeacher)
+            const SizedBox(width: 8),
           // Star Counter Pill
-          Consumer<GameState>(
-            builder: (context, gameState, child) {
-              final stars = gameState.totalStars;
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF39C12),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF873600), width: 2),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.star_border, color: Colors.white, size: 18),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$stars',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+          if (!widget.isTeacher)
+            Consumer<GameState>(
+              builder: (context, gameState, child) {
+                final stars = gameState.totalStars;
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF39C12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF873600), width: 2),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.star_border, color: Colors.white, size: 18),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$stars',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );

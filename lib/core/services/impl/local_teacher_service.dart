@@ -133,7 +133,7 @@ class LocalTeacherService implements TeacherService {
 
   // ── Recompensas ──────────────────────────────────────────────────────
   @override
-  Future<List<RewardModel>> getRewards() async {
+  Future<List<RewardModel>> getRewards({String? groupId}) async {
     final prefs = await _getPrefs();
     final json = prefs.getString('dynamic_rewards');
     if (json != null) {
@@ -168,12 +168,17 @@ class LocalTeacherService implements TeacherService {
   // ── Progreso / Analytics ─────────────────────────────────────────────
   @override
   Future<Map<String, Map<String, int>>> getGroupProgress(String groupId) async {
-    // En la demo, retornamos datos mock
+    return {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> getGroupStats(String groupId) async {
     return {
-      'Juan Pérez': {'0': 3, '1': 2, '2': 1},
-      'Ana López': {'0': 3, '1': 3},
-      'Carlos Méndez': {'0': 2},
-      'Sofía Ramírez': {'0': 3, '1': 3, '2': 3, '3': 2},
+      'studentCount': 0,
+      'activeLevelsCount': 0,
+      'overallAverage': 0.0,
+      'biomeAverages': [],
+      'ranking': [],
     };
   }
 

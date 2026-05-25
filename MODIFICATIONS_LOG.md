@@ -416,3 +416,36 @@ flutter run -d macos
 #### Resultado
 - **0 errors**, **0 warnings** en `flutter analyze`
 - Build web exitoso ✓
+
+---
+
+### 18. Limpieza Visual y Emojis Rotos
+**Archivos:** Múltiples pantallas del maestro (`teacher_group_management_screen.dart`, `teacher_question_management_screen.dart`, etc.)
+**Qué se hizo:**
+- Se eliminaron emojis hardcodeados en texto (`Text('📋')`, etc.) que causaban cuadros con signos de interrogación en algunos emuladores/dispositivos debido a la falta de fuentes instaladas.
+- Fueron reemplazados con `Icon(Icons.*)` y combinaciones de colores nativas de Flutter para asegurar que se pinten correctamente en todas las plataformas.
+
+### 19. Conexión de Estadísticas del Maestro a Supabase
+**Archivos:** `teacher_service.dart`, `supabase_teacher_service.dart`, `teacher_progress_screen.dart`
+**Qué se hizo:**
+- Se creó el método `getGroupStats(String groupId)` en `TeacherService` y su respectiva implementación en `SupabaseTeacherService`.
+- **Métricas Reales:** La pantalla de progreso del grupo ahora calcula el número de alumnos inscritos, los niveles totales habilitados y el promedio total de estrellas de todo el grupo desde la tabla `student_progress`.
+- **Desempeño Promedio Dinámico por Bioma:** Lee todas las estrellas, agrupa por `level_id`, asocia al `biome` de la tabla `levels` y presenta promedios reales en la Gráfica de Barras (`FlChart`) y lista detallada, eliminando la data "falsa/dura".
+- **Ranking Semanal:** Se extrajo el historial de estrellas generadas esta semana (`activity_log`), sincronizando perfectamente la tabla de posiciones (ranking) del maestro con la que ven los estudiantes.
+- Refactorización de `TeacherProgressScreen` a `StatefulWidget` (mediante `ConsumerStatefulWidget` de Riverpod) para orquestar la obtención asíncrona de datos de Supabase e inyectar un indicador visual (`CircularProgressIndicator`) mientras se consulta el backend.
+
+### 20. Rediseño del Flujo de Gestión de Niveles y Preguntas
+**Archivos:** `teacher_level_management_screen.dart`, `teacher_question_management_screen.dart`, `game_state.dart`
+**Qué se hizo:**
+- **Agrupación Visual de Biomas:** En "Gestión de Niveles" (`TeacherLevelManagementScreen`), los niveles ya no se muestran en una lista plana, sino agrupados bajo listas expandibles (`ExpansionTile`) tituladas con el nombre de cada Bioma (ej. Ciudad, Manglar, Bosque).
+- **Modo de "Agregado de Preguntas" ("Modo Edición"):** Al hacer clic en cualquier nivel dentro de los biomas expandibles, el profesor es dirigido a la pantalla `TeacherQuestionManagementScreen` pero en un modo especial donde los campos irrelevantes ("Nombre de Bioma", "Fondo") se ocultan.
+- **Inserción Directa:** Se creó un método `addQuestionsToLevel()` en el `GameState` que ahora permite inyectar las preguntas creadas directamente dentro del nivel preexistente seleccionado, finalizando un flujo coherente para que los maestros puedan engrosar el banco de preguntas de un nivel específico con el tiempo.
+
+### 13. Perfil de Maestro y Pruebas
+**Archivos:** `student_map_screen.dart`, `student_quiz_screen.dart`, `student_level_complete_screen.dart`, `student_awards_screen.dart`, `teacher_main_screen.dart`
+**Qué se hizo:**
+- Al maestro no se le descuentan corazones ni acumula estrellas por completar niveles de prueba.
+- Se agregó el parámetro `isTeacher` a las vistas compartidas entre maestro y estudiante para gestionar esta lógica condicional de manera segura.
+- La pantalla de "Premios Canjeables" vista desde el perfil del maestro ahora permite cargar grupos y visualizar las recompensas mediante un menú desplegable (`DropdownButton`) específico para cada grupo creado por el maestro.
+
+- También se implementó el selector de grupos en la pantalla de Estadísticas (Progreso).

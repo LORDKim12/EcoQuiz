@@ -183,7 +183,7 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen>
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('⭐', style: TextStyle(fontSize: 30)),
+                      Icon(Icons.star, color: Colors.amber, size: 30),
                       SizedBox(width: 8),
                       Text(
                         '¡Correcto!',
@@ -194,7 +194,7 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen>
                         ),
                       ),
                       SizedBox(width: 8),
-                      Text('🎯', style: TextStyle(fontSize: 30)),
+                      Icon(Icons.track_changes, size: 30, color: Colors.orange),
                     ],
                   ),
                 ),
@@ -289,7 +289,7 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen>
                                     color: Color(0xFF8B4513), size: 20),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Dato asombroso 🌿',
+                                  'Dato asombroso',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,

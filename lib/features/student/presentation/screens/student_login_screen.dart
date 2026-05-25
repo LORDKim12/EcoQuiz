@@ -45,6 +45,12 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
 
       // Sincronizar GameState desde Supabase (niveles, premios, estrellas, etc.)
       gameState.setPlayerName(user.name);
+      
+      final groupCode = _classCodeController.text.trim().isEmpty
+          ? 'ECO-4A'
+          : _classCodeController.text.trim();
+      gameState.setPlayerGroup(groupCode);
+
       await gameState.syncFromSupabase(user.id);
 
       if (!mounted) return;

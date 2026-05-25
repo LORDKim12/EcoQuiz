@@ -342,7 +342,7 @@ class _TeacherGroupManagementScreenState extends ConsumerState<TeacherGroupManag
                               SnackBar(
                                 content: Row(
                                   children: [
-                                    const Text('✅', style: TextStyle(fontSize: 20)),
+                                    Icon(Icons.assignment, size: 24, color: AppColors.textBrown),
                                     const SizedBox(width: 8),
                                     Flexible(
                                       child: Text(
@@ -593,9 +593,6 @@ class _TeacherGroupManagementScreenState extends ConsumerState<TeacherGroupManag
                             separatorBuilder: (context, index) => const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final student = _students[index];
-                              // Asignar avatares variados según índice
-                              final avatars = ['👦🏽', '👧🏻', '👦🏻', '👧🏽', '🧑🏽', '👩🏻', '👦🏼', '👧🏼'];
-                              final avatar = avatars[index % avatars.length];
 
                               return Container(
                                 decoration: BoxDecoration(
@@ -617,7 +614,7 @@ class _TeacherGroupManagementScreenState extends ConsumerState<TeacherGroupManag
                                       border: Border.all(color: const Color(0xFFE67E22), width: 2),
                                     ),
                                     child: Center(
-                                      child: Text(avatar, style: const TextStyle(fontSize: 24)),
+                                      child: Icon(Icons.person, color: Colors.white, size: 28),
                                     ),
                                   ),
                                   title: Text(

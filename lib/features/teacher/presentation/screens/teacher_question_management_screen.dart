@@ -1,61 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart';
+import '../../../student/domain/models/game_state.dart';
+import '../../../student/domain/models/quiz_model.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/providers/service_providers.dart';
-import '../../../../core/models/models.dart';
 
 class TeacherQuestionManagementScreen extends ConsumerStatefulWidget {
   final int? initialLevelId;
   const TeacherQuestionManagementScreen({super.key, this.initialLevelId});
 
   @override
-  State<TeacherQuestionManagementScreen> createState() =>
+  ConsumerState<TeacherQuestionManagementScreen> createState() =>
       _TeacherQuestionManagementScreenState();
 }
 
 class _TeacherQuestionManagementScreenState
     extends ConsumerState<TeacherQuestionManagementScreen> {
-  List<LevelModel> _levels = [];
-  Map<int, List<QuestionModel>> _questionsByLevel = {};
-  int _selectedLevelId = 0;
-  bool _isLoading = true;
+  final List<_QuestionFormData> _questions = [_QuestionFormData()];
+  final TextEditingController _levelNameController = TextEditingController();
+  String? _selectedBackgroundPath;
+
+  final List<Map<String, String>> _backgroundOptions = [
+    {'path': 'assets/images/biome_city_1779232580447.png', 'label': 'Ciudad'},
+    {'path': 'assets/images/biome_mangrove_1779232638084.png', 'label': 'Manglar'},
+    {'path': 'assets/images/biome_reef_1779232742390.png', 'label': 'Arrecife'},
+    {'path': 'assets/images/desert_jungle_map_bg_1778450873966.png', 'label': 'Desierto/Selva'},
+  ];
 
   @override
   void initState() {
     super.initState();
-    _selectedLevelId = widget.initialLevelId ?? 0;
-    _loadData();
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    try {
-      final teacherService = ref.read(teacherServiceProvider);
-      // Cargar niveles de Supabase (no del GameState) para que los IDs coincidan
-      _levels = await teacherService.getLevels();
-
-      _questionsByLevel = {};
-      final client = supabase_flutter.Supabase.instance.client;
-      for (final level in _levels) {
-        final result = await client
-            .from('questions')
-            .select()
-            .eq('level_id', level.id);
-        _questionsByLevel[level.id] = result
-            .map((json) => QuestionModel.fromJson(json))
-            .toList();
-      }
-      if (_levels.isNotEmpty && !_levels.any((l) => l.id == _selectedLevelId)) {
-        _selectedLevelId = _levels.first.id;
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  void _addQuestion() {
+    setState(() {
+      _questions.add(_QuestionFormData());
+    });
   }
 
   void _removeQuestion(int index) {
@@ -77,7 +57,7 @@ class _TeacherQuestionManagementScreenState
                   borderRadius: BorderRadius.circular(24)),
               title: const Row(
                 children: [
-                  Text('📷', style: TextStyle(fontSize: 24)),
+                  Icon(Icons.public, size: 22, color: Colors.blue),
                   SizedBox(width: 8),
                   Text('Fondo del Bioma',
                       style: TextStyle(
@@ -216,9 +196,11 @@ class _TeacherQuestionManagementScreenState
 
   bool _validateAndSave() {
     final name = _levelNameController.text.trim();
-    if (name.isEmpty) {
-      _showError('El nombre del nivel no puede estar vacío.');
-      return false;
+    if (widget.initialLevelId == null) {
+      if (name.isEmpty) {
+        _showError('El nombre del nivel no puede estar vacío.');
+        return false;
+      }
     }
 
     // Validar que al menos la primera pregunta esté completa
@@ -252,7 +234,11 @@ class _TeacherQuestionManagementScreenState
       );
     }).toList();
 
-    context.read<GameState>().addLevelWithQuestions(name, _selectedBackgroundPath, questions);
+    if (widget.initialLevelId != null) {
+      context.read<GameState>().addQuestionsToLevel(widget.initialLevelId!, questions);
+    } else {
+      context.read<GameState>().addLevelWithQuestions(name, _selectedBackgroundPath, questions);
+    }
     return true;
   }
 
@@ -296,7 +282,7 @@ class _TeacherQuestionManagementScreenState
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Crear Nivel',
+          widget.initialLevelId != null ? 'Agregar Preguntas' : 'Crear Nivel',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 color: AppColors.textBrown,
                 fontWeight: FontWeight.w900,
@@ -311,12 +297,12 @@ class _TeacherQuestionManagementScreenState
                 if (_validateAndSave()) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Row(
+                      content: Row(
                         children: [
-                          Text('🎉', style: TextStyle(fontSize: 20)),
-                          SizedBox(width: 8),
-                          Text('¡Nivel creado exitosamente!',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          const Icon(Icons.camera_alt, size: 24, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Text(widget.initialLevelId != null ? '¡Preguntas agregadas exitosamente!' : '¡Nivel creado exitosamente!',
+                              style: const TextStyle(fontWeight: FontWeight.bold)),
                         ],
                       ),
                       backgroundColor: const Color(0xFF27AE60),
@@ -354,18 +340,20 @@ class _TeacherQuestionManagementScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Columna izquierda: config del nivel
-                  SizedBox(
-                    width: 340,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: _buildLevelConfigSection(),
+                  if (widget.initialLevelId == null) ...[
+                    SizedBox(
+                      width: 340,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: _buildLevelConfigSection(),
+                      ),
                     ),
-                  ),
-                  // Divisor vertical
-                  Container(
-                    width: 1,
-                    color: Colors.grey.shade200,
-                  ),
+                    // Divisor vertical
+                    Container(
+                      width: 1,
+                      color: Colors.grey.shade200,
+                    ),
+                  ],
                   // Columna derecha: preguntas
                   Expanded(
                     child: SingleChildScrollView(
@@ -384,10 +372,12 @@ class _TeacherQuestionManagementScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildLevelConfigSection(),
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 16),
+                  if (widget.initialLevelId == null) ...[
+                    _buildLevelConfigSection(),
+                    const SizedBox(height: 24),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                  ],
                   _buildQuestionsSection(),
                   const SizedBox(height: 80),
                 ],

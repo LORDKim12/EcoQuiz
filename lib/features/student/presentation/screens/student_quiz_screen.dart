@@ -10,8 +10,9 @@ import 'student_level_complete_screen.dart';
 class StudentQuizScreen extends StatefulWidget {
   final List<QuizQuestion> questions;
   final int levelIndex; // To know which card to unlock
+  final bool isTeacher;
 
-  const StudentQuizScreen({super.key, required this.questions, required this.levelIndex});
+  const StudentQuizScreen({super.key, required this.questions, required this.levelIndex, this.isTeacher = false});
 
   @override
   State<StudentQuizScreen> createState() => _StudentQuizScreenState();
@@ -169,6 +170,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                     builder: (context) => StudentLevelCompleteScreen(
                       levelIndex: widget.levelIndex,
                       earnedStars: earned,
+                      isTeacher: widget.isTeacher,
                     ),
                   ),
                 );
@@ -183,7 +185,9 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
     } else {
       // Wrong answer — deduct heart, shake, and show correct
       _timer?.cancel();
-      context.read<GameState>().deductHeart();
+      if (!widget.isTeacher) {
+        context.read<GameState>().deductHeart();
+      }
       
       // Shake animation
       _shakeController.reset();
@@ -224,7 +228,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  '¡Incorrecto! — ($remainingHearts ❤️ restantes)',
+                  widget.isTeacher ? '¡Incorrecto!' : '¡Incorrecto! — ($remainingHearts ❤️ restantes)',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -259,9 +263,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
                   color: const Color(0xFFE74C3C).withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
-                  child: Text('💔', style: TextStyle(fontSize: 40)),
-                ),
+                child: const Icon(Icons.favorite_border, size: 40, color: Colors.red),
               ),
               const SizedBox(height: 20),
               const Text(

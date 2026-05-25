@@ -1,62 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
-import 'package:provider/provider.dart' as prov;
+import 'package:provider/provider.dart';
 import '../../domain/models/game_state.dart';
 import '../widgets/settings_bottom_sheet.dart';
-import '../../../../core/providers/service_providers.dart';
-import '../../../../core/models/models.dart';
 
-class StudentAwardsScreen extends ConsumerStatefulWidget {
-  final bool isTeacher;
-  const StudentAwardsScreen({super.key, this.isTeacher = false});
-
-  @override
-  ConsumerState<StudentAwardsScreen> createState() => _StudentAwardsScreenState();
-}
-
-class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
-  bool _isLoadingGroups = false;
-  List<GroupModel> _groups = [];
-  GroupModel? _selectedGroup;
-  List<RewardModel> _teacherRewards = [];
-  bool _isLoadingRewards = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.isTeacher) {
-      _loadTeacherData();
-    }
-  }
-
-  Future<void> _loadTeacherData() async {
-    setState(() => _isLoadingGroups = true);
-    try {
-      final teacherService = ref.read(teacherServiceProvider);
-      _groups = await teacherService.getGroups();
-      if (_groups.isNotEmpty) {
-        _selectedGroup = _groups.first;
-        await _loadRewardsForGroup(_selectedGroup!.id);
-      }
-    } catch (e) {
-      debugPrint('Error loading teacher data: $e');
-    } finally {
-      if (mounted) setState(() => _isLoadingGroups = false);
-    }
-  }
-
-  Future<void> _loadRewardsForGroup(String groupId) async {
-    setState(() => _isLoadingRewards = true);
-    try {
-      final teacherService = ref.read(teacherServiceProvider);
-      _teacherRewards = await teacherService.getRewards(groupId: groupId);
-    } catch (e) {
-      debugPrint('Error loading rewards: $e');
-    } finally {
-      if (mounted) setState(() => _isLoadingRewards = false);
-    }
-  }
+class StudentAwardsScreen extends StatelessWidget {
+  const StudentAwardsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +32,7 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFD35400).withOpacity(0.3),
+                      color: const Color(0xFFD35400).withValues(alpha: 0.3),
                       offset: const Offset(0, 8),
                       blurRadius: 16,
                     ),
@@ -94,7 +43,7 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.stars, color: Colors.white, size: 40),
@@ -113,9 +62,9 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
                               letterSpacing: 1.2,
                             ),
                           ),
-                          prov.Consumer<GameState>(
+                          Consumer<GameState>(
                             builder: (context, gameState, child) {
-                              final totalStars = widget.isTeacher ? 0 : gameState.totalStars;
+                              final totalStars = gameState.totalStars;
                               return Row(
                                 children: [
                                   Text(
@@ -134,73 +83,38 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
                         ],
                       ),
                     ),
-                    // Cantidad de premios comprados (hide for teacher)
-                    if (!widget.isTeacher)
-                      prov.Consumer<GameState>(
-                        builder: (context, gameState, _) {
-                          final purchased = gameState.purchasedRewards;
-                          if (purchased.isEmpty) return const SizedBox();
-                          return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.25),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.shopping_bag, color: Colors.white, size: 16),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${purchased.length}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
+                    // Cantidad de premios comprados
+                    Consumer<GameState>(
+                      builder: (context, gameState, _) {
+                        final purchased = gameState.purchasedRewards;
+                        if (purchased.isEmpty) return const SizedBox();
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.25),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.shopping_bag, color: Colors.white, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${purchased.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
                                 ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
             ),
-
-            // Group Selector for Teacher
-            if (widget.isTeacher) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    const Icon(Icons.group, color: AppColors.studentPrimary),
-                    const SizedBox(width: 8),
-                    const Text('Selecciona un grupo:', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 16),
-                    if (_isLoadingGroups)
-                      const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    else if (_groups.isEmpty)
-                      const Expanded(child: Text('No hay grupos', style: TextStyle(color: Colors.red)))
-                    else
-                      Expanded(
-                        child: DropdownButton<GroupModel>(
-                          isExpanded: true,
-                          value: _selectedGroup,
-                          items: _groups.map((g) => DropdownMenuItem(value: g, child: Text(g.name))).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _selectedGroup = val);
-                              _loadRewardsForGroup(val.id);
-                            }
-                          },
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -220,7 +134,7 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
-                widget.isTeacher ? 'Premios disponibles para este grupo' : 'Gasta tus estrellas en premios especiales',
+                'Gasta tus estrellas en premios especiales',
                 style: TextStyle(
                   fontSize: 13,
                   color: Colors.grey.shade600,
@@ -234,131 +148,67 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: widget.isTeacher
-                    ? _buildTeacherRewardsGrid()
-                    : prov.Consumer<GameState>(
-                        builder: (context, gameState, child) {
-                          final rewards = gameState.rewards;
-                          final totalStars = gameState.totalStars;
-                          final purchased = gameState.purchasedRewards;
-
-                          if (rewards.isEmpty) {
-                            return _buildEmptyRewards();
-                          }
-
-                          return GridView.builder(
-                            physics: const BouncingScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              childAspectRatio: 0.55,
-                            ),
-                            itemCount: rewards.length,
-                            itemBuilder: (context, index) {
-                              final reward = rewards[index];
-                              final bool isPurchased = purchased.contains(reward.id);
-                              final bool isAffordable = totalStars >= reward.cost;
-
-                              return _buildRewardCard(
-                                context,
-                                reward: reward,
-                                isAffordable: isAffordable,
-                                isPurchased: isPurchased,
+                child: Consumer<GameState>(
+                  builder: (context, gameState, child) {
+                    final rewards = gameState.rewards;
+                    final totalStars = gameState.totalStars;
+                    final purchased = gameState.purchasedRewards;
+                            if (rewards.isEmpty) {
+                              return Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.card_giftcard, size: 50, color: Color(0xFFF39C12)),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'No hay premios disponibles aún',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Tu maestro agregará premios pronto',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               );
-                            },
-                          );
-                        },
-                      ),
+                            }
+
+                            return GridView.builder(
+                              physics: const BouncingScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 0.55,
+                              ),
+                              itemCount: rewards.length,
+                              itemBuilder: (context, index) {
+                                final reward = rewards[index];
+                                final bool isPurchased = purchased.contains(reward.id);
+                                final bool isAffordable = totalStars >= reward.cost;
+
+                                return _buildRewardCard(
+                                  context,
+                                  reward: reward,
+                                  isAffordable: isAffordable,
+                                  isPurchased: isPurchased,
+                                );
+                              },
+                            );
+                  },
+                ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTeacherRewardsGrid() {
-    if (_isLoadingRewards) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_teacherRewards.isEmpty) {
-      return _buildEmptyRewards();
-    }
-    return GridView.builder(
-      physics: const BouncingScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.55,
-      ),
-      itemCount: _teacherRewards.length,
-      itemBuilder: (context, index) {
-        final r = _teacherRewards[index];
-        final colorInt = _hexToColor(r.colorHex);
-        final rewardData = RewardData(
-          id: r.id,
-          title: r.title,
-          subtitle: r.subtitle,
-          cost: r.cost,
-          colorValue: colorInt,
-          iconCodePoint: _getIconCodePoint(r.iconName),
-        );
-
-        return _buildRewardCard(
-          context,
-          reward: rewardData,
-          isAffordable: false, // Maestro no compra
-          isPurchased: false,
-        );
-      },
-    );
-  }
-
-  int _hexToColor(String hex) {
-    hex = hex.replaceAll('#', '');
-    if (hex.length == 6) hex = 'FF$hex';
-    return int.tryParse(hex, radix: 16) ?? 0xFF000000;
-  }
-
-  int _getIconCodePoint(String iconName) {
-    switch (iconName) {
-      case 'star': return Icons.star.codePoint;
-      case 'videogame_asset': return Icons.videogame_asset.codePoint;
-      case 'color_lens': return Icons.color_lens.codePoint;
-      case 'face': return Icons.face.codePoint;
-      case 'lightbulb': return Icons.lightbulb.codePoint;
-      case 'wallpaper': return Icons.wallpaper.codePoint;
-      case 'crop_square': return Icons.crop_square.codePoint;
-      default: return Icons.card_giftcard.codePoint;
-    }
-  }
-
-  Widget _buildEmptyRewards() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.card_giftcard, size: 50, color: Color(0xFFF39C12)),
-          const SizedBox(height: 16),
-          Text(
-            'No hay premios disponibles aún',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            widget.isTeacher ? 'Agrega premios en la Gestión de Premios' : 'Tu maestro agregará premios pronto',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade400,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -379,18 +229,18 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
         border: Border.all(
           color: isPurchased
               ? const Color(0xFF27AE60)
-              : isAffordable || widget.isTeacher
-                  ? color.withOpacity(0.3)
+              : isAffordable
+                  ? color.withValues(alpha: 0.3)
                   : Colors.grey.shade300,
           width: isPurchased ? 3 : 2,
         ),
         boxShadow: [
           BoxShadow(
             color: isPurchased
-                ? const Color(0xFF27AE60).withOpacity(0.15)
-                : isAffordable || widget.isTeacher
-                    ? color.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
+                ? const Color(0xFF27AE60).withValues(alpha: 0.15)
+                : isAffordable
+                    ? color.withValues(alpha: 0.1)
+                    : Colors.black.withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -404,8 +254,8 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
               decoration: BoxDecoration(
                 color: isPurchased
                     ? const Color(0xFFD5F5E3)
-                    : isAffordable || widget.isTeacher
-                        ? color.withOpacity(0.1)
+                    : isAffordable
+                        ? color.withValues(alpha: 0.1)
                         : Colors.grey.shade100,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
               ),
@@ -417,7 +267,7 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
                     size: 60,
                     color: isPurchased
                         ? const Color(0xFF27AE60)
-                        : isAffordable || widget.isTeacher
+                        : isAffordable
                             ? color
                             : Colors.grey.shade400,
                   ),
@@ -448,7 +298,7 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
                   style: TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 15,
-                    color: isPurchased ? const Color(0xFF27AE60) : ((isAffordable || widget.isTeacher) ? AppColors.textDark : Colors.grey),
+                    color: isPurchased ? const Color(0xFF27AE60) : (isAffordable ? AppColors.textDark : Colors.grey),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -456,7 +306,7 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
                 Text(
                   reward.subtitle,
                   style: TextStyle(
-                    color: isPurchased ? const Color(0xFF27AE60) : ((isAffordable || widget.isTeacher) ? color : Colors.grey),
+                    color: isPurchased ? const Color(0xFF27AE60) : (isAffordable ? color : Colors.grey),
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
@@ -488,12 +338,12 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
                           ),
                         )
                       : ElevatedButton(
-                          onPressed: (isAffordable && !widget.isTeacher)
+                          onPressed: isAffordable
                               ? () => _showPurchaseDialog(context, reward)
                               : null,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: (isAffordable || widget.isTeacher) ? const Color(0xFFF39C12) : Colors.grey.shade300,
-                            foregroundColor: (isAffordable || widget.isTeacher) ? Colors.white : Colors.grey.shade600,
+                            backgroundColor: isAffordable ? const Color(0xFFF39C12) : Colors.grey.shade300,
+                            foregroundColor: isAffordable ? Colors.white : Colors.grey.shade600,
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -535,7 +385,7 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
               width: 70,
               height: 70,
               decoration: BoxDecoration(
-                color: Color(reward.colorValue).withOpacity(0.15),
+                color: Color(reward.colorValue).withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -648,9 +498,9 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
     return Container(
       padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, left: 16, right: 16, bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.backgroundLight.withOpacity(0.95),
+        color: AppColors.backgroundLight.withValues(alpha: 0.95),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
       child: Row(
