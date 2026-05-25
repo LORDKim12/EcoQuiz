@@ -25,6 +25,48 @@ class EncyclopediaCardData {
   });
 }
 
+/// Representa una parada dentro de una Expedición.
+/// Cada parada tiene su propio set de preguntas (quiz independiente).
+class ExpeditionStop {
+  final int id;
+  final String title;
+  final List<QuizQuestion> questions;
+  final bool isCompleted;
+
+  const ExpeditionStop({
+    required this.id,
+    required this.title,
+    this.questions = const [],
+    this.isCompleted = false,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'questions': questions.map((q) => q.toJson()).toList(),
+        'isCompleted': isCompleted,
+      };
+
+  factory ExpeditionStop.fromJson(Map<String, dynamic> json) => ExpeditionStop(
+        id: json['id'] ?? 0,
+        title: json['title'] ?? '',
+        questions: json['questions'] != null
+            ? (json['questions'] as List)
+                .map((q) => QuizQuestion.fromJson(q))
+                .toList()
+            : [],
+        isCompleted: json['isCompleted'] ?? false,
+      );
+
+  ExpeditionStop copyWith({bool? isCompleted, String? title, List<QuizQuestion>? questions}) =>
+      ExpeditionStop(
+        id: id,
+        title: title ?? this.title,
+        questions: questions ?? this.questions,
+        isCompleted: isCompleted ?? this.isCompleted,
+      );
+}
+
 class LevelData {
   final int id;
   final String title;
@@ -32,6 +74,9 @@ class LevelData {
   final bool isUnlocked;
   final List<QuizQuestion> questions;
   final String? backgroundPath;
+  final String? backgroundImagePath; // Ruta del asset del bioma para el mapa
+  final List<ExpeditionStop> stops;  // Lista ordenada de paradas
+  final List<int> completedStops;    // IDs de paradas completadas
 
   LevelData({
     required this.id,
@@ -40,7 +85,25 @@ class LevelData {
     this.isUnlocked = false,
     this.questions = const [],
     this.backgroundPath,
+    this.backgroundImagePath,
+    this.stops = const [],
+    this.completedStops = const [],
   });
+
+  /// Devuelve true si esta expedición tiene paradas configuradas.
+  bool get hasStops => stops.isNotEmpty;
+
+  /// Devuelve el índice de la parada actual (primera no completada).
+  int get currentStopIndex {
+    for (int i = 0; i < stops.length; i++) {
+      if (!completedStops.contains(stops[i].id)) return i;
+    }
+    return stops.length - 1; // Todas completadas → última
+  }
+
+  /// Devuelve true si todas las paradas están completadas.
+  bool get allStopsCompleted =>
+      hasStops && completedStops.length >= stops.length;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -49,7 +112,11 @@ class LevelData {
         'isUnlocked': isUnlocked,
         'questions': questions.map((q) => q.toJson()).toList(),
         'backgroundPath': backgroundPath,
+        'backgroundImagePath': backgroundImagePath,
+        'stops': stops.map((s) => s.toJson()).toList(),
+        'completedStops': completedStops,
       };
+
   factory LevelData.fromJson(Map<String, dynamic> json) => LevelData(
         id: json['id'],
         title: json['title'],
@@ -61,6 +128,37 @@ class LevelData {
                 .toList()
             : [],
         backgroundPath: json['backgroundPath'],
+        backgroundImagePath: json['backgroundImagePath'],
+        stops: json['stops'] != null
+            ? (json['stops'] as List)
+                .map((s) => ExpeditionStop.fromJson(s))
+                .toList()
+            : [],
+        completedStops: json['completedStops'] != null
+            ? List<int>.from(json['completedStops'])
+            : [],
+      );
+
+  LevelData copyWith({
+    bool? isUnlocked,
+    String? title,
+    String? biome,
+    List<QuizQuestion>? questions,
+    String? backgroundPath,
+    String? backgroundImagePath,
+    List<ExpeditionStop>? stops,
+    List<int>? completedStops,
+  }) =>
+      LevelData(
+        id: id,
+        title: title ?? this.title,
+        biome: biome ?? this.biome,
+        isUnlocked: isUnlocked ?? this.isUnlocked,
+        questions: questions ?? this.questions,
+        backgroundPath: backgroundPath ?? this.backgroundPath,
+        backgroundImagePath: backgroundImagePath ?? this.backgroundImagePath,
+        stops: stops ?? this.stops,
+        completedStops: completedStops ?? this.completedStops,
       );
 }
 
@@ -141,12 +239,12 @@ class GameState extends ChangeNotifier {
   int get xp => _xp;
 
   List<LevelData> _levels = [
-    LevelData(id: 0, title: 'Nivel 1', biome: 'Ciudad', isUnlocked: true),
-    LevelData(id: 1, title: 'Nivel 1', biome: 'Manglar', isUnlocked: false),
-    LevelData(id: 2, title: 'Nivel 1', biome: 'Arrecife', isUnlocked: false),
-    LevelData(id: 3, title: 'Nivel 1', biome: 'Bosque', isUnlocked: false),
-    LevelData(id: 4, title: 'Nivel 1', biome: 'Selva', isUnlocked: false),
-    LevelData(id: 5, title: 'Nivel 1', biome: 'Desierto', isUnlocked: false),
+    LevelData(id: 0, title: 'Nivel 1', biome: 'Ciudad', isUnlocked: true, backgroundImagePath: 'assets/images/biome_city.png'),
+    LevelData(id: 1, title: 'Nivel 1', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
+    LevelData(id: 2, title: 'Nivel 1', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
+    LevelData(id: 3, title: 'Nivel 1', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
+    LevelData(id: 4, title: 'Nivel 1', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
+    LevelData(id: 5, title: 'Nivel 1', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
   ];
   List<LevelData> get levels => _levels;
 
@@ -208,19 +306,51 @@ class GameState extends ChangeNotifier {
     _saveXP();
   }
 
+  // ---- Métodos de Expediciones ----
+  /// Crea una expedición completa con paradas.
+  void addExpedition(String title, String? backgroundImagePath, List<ExpeditionStop> stops, {String biome = 'Personalizado'}) {
+    final newId = _levels.isEmpty ? 0 : _levels.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
+    _levels.add(LevelData(
+      id: newId,
+      title: title,
+      biome: biome,
+      isUnlocked: true,
+      backgroundImagePath: backgroundImagePath,
+      stops: stops,
+    ));
+    _saveLevels();
+    _persistLevelToSupabase(title, biome, newId);
+  }
+
+  /// Agrega una parada a una expedición existente.
+  void addStopToExpedition(int levelId, ExpeditionStop stop) {
+    final index = _levels.indexWhere((l) => l.id == levelId);
+    if (index != -1) {
+      final level = _levels[index];
+      final updatedStops = List<ExpeditionStop>.from(level.stops)..add(stop);
+      _levels[index] = level.copyWith(stops: updatedStops);
+      _saveLevels();
+    }
+  }
+
+  /// Marca una parada como completada y desbloquea la siguiente si corresponde.
+  void markStopCompleted(int levelId, int stopId) {
+    final index = _levels.indexWhere((l) => l.id == levelId);
+    if (index != -1) {
+      final level = _levels[index];
+      if (!level.completedStops.contains(stopId)) {
+        final updatedCompleted = List<int>.from(level.completedStops)..add(stopId);
+        _levels[index] = level.copyWith(completedStops: updatedCompleted);
+        _saveLevels();
+      }
+    }
+  }
+
   // ---- Métodos de Niveles ----
   void setLevelUnlocked(int id, bool isUnlocked) {
     final index = _levels.indexWhere((l) => l.id == id);
     if (index != -1) {
-      final old = _levels[index];
-      _levels[index] = LevelData(
-        id: id,
-        title: old.title,
-        biome: old.biome,
-        isUnlocked: isUnlocked,
-        questions: old.questions,
-        backgroundPath: old.backgroundPath,
-      );
+      _levels[index] = _levels[index].copyWith(isUnlocked: isUnlocked);
       _saveLevels();
     }
   }
@@ -289,20 +419,8 @@ class GameState extends ChangeNotifier {
     if (index != -1) {
       final level = _levels[index];
       final updatedQuestions = List<QuizQuestion>.from(level.questions)..addAll(newQuestions);
-      _levels[index] = LevelData(
-        id: level.id,
-        title: level.title,
-        biome: level.biome,
-        isUnlocked: level.isUnlocked,
-        questions: updatedQuestions,
-        backgroundPath: level.backgroundPath,
-      );
+      _levels[index] = level.copyWith(questions: updatedQuestions);
       _saveLevels();
-      
-      // En una implementación completa con Supabase, aquí se guardarían las preguntas.
-      // Por ahora, como Supabase _persistLevelToSupabase guarda el nivel principal, 
-      // y la lógica de preguntas está en memoria para la demo, con _saveLevels() es suficiente
-      // para persistir localmente.
       notifyListeners();
     }
   }
@@ -594,22 +712,16 @@ class GameState extends ChangeNotifier {
     _purchasedRewards.clear();
 
     final defaultLevels = [
-      LevelData(id: 0, title: 'Nivel 1', biome: 'Ciudad', isUnlocked: true),
-      LevelData(id: 1, title: 'Nivel 1', biome: 'Manglar', isUnlocked: false),
-      LevelData(id: 2, title: 'Nivel 1', biome: 'Arrecife', isUnlocked: false),
-      LevelData(id: 3, title: 'Nivel 1', biome: 'Bosque', isUnlocked: false),
-      LevelData(id: 4, title: 'Nivel 1', biome: 'Selva', isUnlocked: false),
-      LevelData(id: 5, title: 'Nivel 1', biome: 'Desierto', isUnlocked: false),
+      LevelData(id: 0, title: 'Nivel 1', biome: 'Ciudad', isUnlocked: true, backgroundImagePath: 'assets/images/biome_city.png'),
+      LevelData(id: 1, title: 'Nivel 1', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
+      LevelData(id: 2, title: 'Nivel 1', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
+      LevelData(id: 3, title: 'Nivel 1', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
+      LevelData(id: 4, title: 'Nivel 1', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
+      LevelData(id: 5, title: 'Nivel 1', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
     ];
     final customLevels = _levels
         .where((l) => l.id > 5)
-        .map((l) => LevelData(
-              id: l.id,
-              title: l.title,
-              isUnlocked: false,
-              questions: l.questions,
-              backgroundPath: l.backgroundPath,
-            ))
+        .map((l) => l.copyWith(isUnlocked: false, completedStops: []))
         .toList();
     _levels = [...defaultLevels, ...customLevels];
     await _saveLevels();

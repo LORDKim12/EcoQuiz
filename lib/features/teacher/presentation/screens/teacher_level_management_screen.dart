@@ -1,33 +1,60 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../../student/domain/models/game_state.dart';
 import 'teacher_question_management_screen.dart';
+import 'teacher_expedition_wizard_screen.dart';
 
 class TeacherLevelManagementScreen extends StatefulWidget {
   const TeacherLevelManagementScreen({super.key});
 
   @override
-  State<TeacherLevelManagementScreen> createState() => _TeacherLevelManagementScreenState();
+  State<TeacherLevelManagementScreen> createState() =>
+      _TeacherLevelManagementScreenState();
 }
 
-class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScreen> {
+class _TeacherLevelManagementScreenState
+    extends State<TeacherLevelManagementScreen> {
+
+  String _getBiomeImage(String biome) {
+    final lower = biome.toLowerCase();
+    if (lower.contains('tundra') || lower.contains('nieve')) {
+      return 'assets/images/biome_tundra.png';
+    } else if (lower.contains('desierto') || lower.contains('arena')) {
+      return 'assets/images/biome_desert.png';
+    } else if (lower.contains('selva') || lower.contains('jungla')) {
+      return 'assets/images/biome_jungle.png';
+    } else if (lower.contains('bosque') || lower.contains('pradera')) {
+      return 'assets/images/biome_forest.png';
+    } else if (lower.contains('ciudad') || lower.contains('urbe')) {
+      return 'assets/images/biome_city.png';
+    } else if (lower.contains('manglar') || lower.contains('pantano')) {
+      return 'assets/images/biome_mangrove.png';
+    } else if (lower.contains('arrecife') || lower.contains('oceano') || lower.contains('mar')) {
+      return 'assets/images/biome_reef.png';
+    }
+    return 'assets/images/biome_forest.png';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFDF8F5),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_expedition',
         onPressed: () {
-          // Navegar a la pantalla de creación de nivel con preguntas
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const TeacherQuestionManagementScreen()),
+            MaterialPageRoute(
+                builder: (_) => const TeacherExpeditionWizardScreen()),
           );
         },
-        backgroundColor: const Color(0xFF2B9BF4),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Nuevo Nivel', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF27AE60),
+        icon: const Icon(Icons.explore, color: Colors.white),
+        label: const Text('Nueva Expedición',
+            style:
+                TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: SafeArea(
         child: Column(
@@ -47,15 +74,18 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Gestión de Niveles',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          'Mis Expediciones',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
                                 color: AppColors.textBrown,
                                 fontWeight: FontWeight.w900,
                               ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Controla y crea niveles con preguntas.',
+                          'Gestiona las aventuras de tus alumnos',
                           style: TextStyle(
                             color: AppColors.textDark.withValues(alpha: 0.8),
                             fontWeight: FontWeight.w600,
@@ -68,74 +98,50 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
                 ],
               ),
             ),
-            
-            // Zones List
+
+            // Expeditions List
             Expanded(
               child: Consumer<GameState>(
                 builder: (context, gameState, child) {
                   final levels = gameState.levels;
-                  
-                  // Agrupar niveles por bioma
-                  final Map<String, List<LevelData>> biomes = {};
-                  for (final level in levels) {
-                    if (!biomes.containsKey(level.biome)) {
-                      biomes[level.biome] = [];
-                    }
-                    biomes[level.biome]!.add(level);
+
+                  if (levels.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.explore_off,
+                              size: 80, color: Colors.grey.shade300),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No hay expediciones',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Crea tu primera expedición con el botón +',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
                   }
-                  
-                  final biomeKeys = biomes.keys.toList();
 
                   return ListView.builder(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8).copyWith(bottom: 80),
-                    itemCount: biomeKeys.length,
+                    padding: const EdgeInsets.symmetric(horizontal: 20)
+                        .copyWith(bottom: 100),
+                    itemCount: levels.length,
                     itemBuilder: (context, index) {
-                      final biome = biomeKeys[index];
-                      final biomeLevels = biomes[biome]!;
-                      
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          side: BorderSide(color: Colors.grey.shade300, width: 2),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: ExpansionTile(
-                          backgroundColor: Colors.white,
-                          collapsedBackgroundColor: Colors.white,
-                          title: Text(
-                            biome,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textBrown,
-                            ),
-                          ),
-                          leading: const CircleAvatar(
-                            backgroundColor: Color(0xFFE8F6F3),
-                            child: Icon(Icons.public, color: Color(0xFF1ABC9C)),
-                          ),
-                          childrenPadding: const EdgeInsets.all(16),
-                          children: biomeLevels.map((level) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => TeacherQuestionManagementScreen(initialLevelId: level.id),
-                                    ),
-                                  );
-                                },
-                                child: _buildZoneCard(context, level),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      );
+                      final level = levels[index];
+                      return _buildExpeditionCard(context, level);
                     },
                   );
                 },
@@ -147,128 +153,202 @@ class _TeacherLevelManagementScreenState extends State<TeacherLevelManagementScr
     );
   }
 
-  Widget _buildZoneCard(BuildContext context, LevelData level) {
-    final isUnlocked = level.isUnlocked;
-    final hasCustomQuestions = level.questions.isNotEmpty;
-    final hasBackground = level.backgroundPath != null;
-    
-    // Asignar colores basados en ID
-    final colors = [
-      const Color(0xFFFDE8E1), const Color(0xFF5ABF5A), 
-      const Color(0xFF98FB98), const Color(0xFFD6EAF8), 
-      const Color(0xFFFFD1DC), const Color(0xFFFFDAB9),
-      const Color(0xFFD5F5E3), const Color(0xFFFEF9E7)
-    ];
-    final color = colors[level.id % colors.length];
+  Widget _buildExpeditionCard(BuildContext context, LevelData level) {
+    final biomeImage =
+        level.backgroundImagePath ?? _getBiomeImage(level.biome);
+    final hasStops = level.hasStops;
+    final stopCount = hasStops ? level.stops.length : 0;
+    final questionCount = hasStops
+        ? level.stops.fold<int>(0, (sum, s) => sum + s.questions.length)
+        : level.questions.length;
+    final isOriginal = level.id <= 5;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade300, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            offset: const Offset(0, 4),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.5),
-                shape: BoxShape.circle,
-              ),
-              child: hasBackground
-                  ? const Icon(Icons.image, color: Color(0xFF2B9BF4), size: 28)
-                  : Icon(Icons.terrain, color: AppColors.textBrown.withValues(alpha: 0.7), size: 28),
+    return GestureDetector(
+      onTap: () {
+        if (isOriginal) {
+          // Niveles originales → ir al editor de preguntas
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TeacherQuestionManagementScreen(
+                  initialLevelId: level.id),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Nivel ${level.id + 1}: ${level.title}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        isUnlocked ? 'Activo' : 'Bloqueado',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: isUnlocked ? const Color(0xFF1E8449) : Colors.red.shade700,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (hasCustomQuestions) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF39C12).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '${level.questions.length} preguntas',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFD35400),
-                            ),
-                          ),
-                        ),
-                      ],
-                      if (!hasCustomQuestions && level.id <= 5) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF27AE60).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'Bioma original',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1E8449),
-                            ),
-                          ),
-                        ),
-                      ],
-                      if (hasBackground) ...[
-                        const SizedBox(width: 6),
-                        const Icon(Icons.image, size: 14, color: Colors.grey),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
+          );
+        } else {
+          // Expediciones custom → ir al editor de preguntas
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TeacherQuestionManagementScreen(
+                  initialLevelId: level.id),
             ),
-            // Custom Switch
-            Switch(
-              value: isUnlocked,
-              activeThumbColor: Colors.white,
-              activeTrackColor: const Color(0xFF27AE60),
-              inactiveThumbColor: Colors.white,
-              inactiveTrackColor: Colors.grey.shade400,
-              onChanged: (val) {
-                context.read<GameState>().setLevelUnlocked(level.id, val);
-              },
+          );
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        height: 140,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Background biome image
+              Image.asset(
+                biomeImage,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  color: const Color(0xFF27AE60),
+                ),
+              ),
+
+              // Dark gradient overlay for readability
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.1),
+                      Colors.black.withValues(alpha: 0.7),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top row: badges
+                    Row(
+                      children: [
+                        // Biome badge
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.25),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.3)),
+                              ),
+                              child: Text(
+                                level.biome,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        if (isOriginal)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF27AE60).withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text(
+                              'Original',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        // Active switch
+                        const SizedBox(width: 8),
+                        Transform.scale(
+                          scale: 0.75,
+                          child: Switch(
+                            value: level.isUnlocked,
+                            activeThumbColor: Colors.white,
+                            activeTrackColor: const Color(0xFF27AE60),
+                            inactiveThumbColor: Colors.white,
+                            inactiveTrackColor:
+                                Colors.white.withValues(alpha: 0.3),
+                            onChanged: (val) {
+                              context
+                                  .read<GameState>()
+                                  .setLevelUnlocked(level.id, val);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    // Bottom: title and stats
+                    Text(
+                      level.title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(color: Colors.black38, blurRadius: 4)
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        if (hasStops) ...[
+                          const Icon(Icons.flag,
+                              color: Colors.white70, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$stopCount parada${stopCount != 1 ? 's' : ''}',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        const Icon(Icons.quiz,
+                            color: Colors.white70, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$questionCount pregunta${questionCount != 1 ? 's' : ''}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const Spacer(),
+                        const Icon(Icons.arrow_forward_ios,
+                            color: Colors.white54, size: 16),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

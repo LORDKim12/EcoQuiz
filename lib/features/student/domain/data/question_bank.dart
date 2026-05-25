@@ -47,6 +47,26 @@ class QuestionBank {
     return _genericQuestions(biomeId);
   }
 
+  /// Devuelve las preguntas para una parada específica de una expedición.
+  /// Si la expedición no tiene paradas, usa getForBiome como fallback.
+  static List<QuizQuestion> getForStop(int levelId, int stopIndex, [GameState? gameState]) {
+    if (gameState != null) {
+      final levels = gameState.levels;
+      final matchIndex = levels.indexWhere((l) => l.id == levelId);
+      if (matchIndex != -1) {
+        final level = levels[matchIndex];
+        if (level.hasStops && stopIndex < level.stops.length) {
+          final stop = level.stops[stopIndex];
+          if (stop.questions.isNotEmpty) {
+            return stop.questions;
+          }
+        }
+      }
+    }
+    // Fallback al comportamiento por bioma
+    return getForBiome(levelId, gameState);
+  }
+
 
   // ── Bioma 0: Ciudad y Medio Ambiente ──────────────────────────────
   static final List<QuizQuestion> _ciudadQuestions = [
