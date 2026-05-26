@@ -19,12 +19,13 @@ class StudentLevelCompleteScreen extends StatefulWidget {
   });
 
   @override
-  State<StudentLevelCompleteScreen> createState() => _StudentLevelCompleteScreenState();
+  State<StudentLevelCompleteScreen> createState() =>
+      _StudentLevelCompleteScreenState();
 }
 
 class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
     with TickerProviderStateMixin {
-  late EncyclopediaCardData cardData;
+  EncyclopediaCardData? cardData;
   late ConfettiController _confettiController;
 
   // Animaciones
@@ -43,10 +44,9 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
   @override
   void initState() {
     super.initState();
-    final safeCardIndex = widget.levelIndex % GameState.allCards.length;
-    cardData = GameState.allCards[safeCardIndex];
-
-    _confettiController = ConfettiController(duration: const Duration(seconds: 5));
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 5),
+    );
 
     // Título: escala desde 0 con rebote
     _titleController = AnimationController(
@@ -99,12 +99,19 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final gameState = context.read<GameState>();
       if (!widget.isTeacher) {
-        gameState.unlockCard(safeCardIndex);
-        gameState.saveStarsForLevel(widget.levelIndex, widget.earnedStars);
-      }
+        final previousStars =
+            gameState.levelStars[widget.levelIndex.toString()] ?? 0;
+        final isFirstWin = previousStars == 0 && widget.earnedStars > 0;
 
-      if (!widget.isTeacher) {
-        if (widget.earnedStars > 0) {
+        gameState.saveStarsForLevel(widget.levelIndex, widget.earnedStars);
+
+        if (isFirstWin) {
+          final level = gameState.levels.firstWhere(
+            (l) => l.id == widget.levelIndex,
+          );
+          setState(() {
+            cardData = gameState.unlockRandomCardForBiome(level.biome);
+          });
           gameState.setLevelUnlocked(widget.levelIndex + 1, true);
           gameState.addXP(50);
         }
@@ -153,7 +160,10 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 30,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -205,13 +215,17 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
                             final bool isEarned = i < widget.earnedStars;
                             // Cada estrella aparece en un tercio del timeline
                             final starDelay = i / 3.0;
-                            final starProgress = ((_starsController.value - starDelay) / 0.33).clamp(0.0, 1.0);
+                            final starProgress =
+                                ((_starsController.value - starDelay) / 0.33)
+                                    .clamp(0.0, 1.0);
                             final scale = isEarned
                                 ? Curves.elasticOut.transform(starProgress)
                                 : Curves.easeOut.transform(starProgress);
 
                             return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                              ),
                               child: Transform.scale(
                                 scale: scale,
                                 child: Icon(
@@ -247,110 +261,128 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
                     const SizedBox(height: 30),
 
                     // ── "Nueva tarjeta descubierta" ─────────────────────
-                    AnimatedBuilder(
-                      animation: _cardController,
-                      builder: (context, child) {
-                        return Transform.translate(
-                          offset: Offset(0, _cardSlide.value),
-                          child: Opacity(
-                            opacity: (_cardController.value * 2).clamp(0.0, 1.0),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: Column(
-                        children: [
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.auto_awesome, color: Color(0xFFF39C12), size: 22),
-                              SizedBox(width: 8),
-                              Text(
-                                '¡Nueva tarjeta descubierta!',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF3E4E42),
-                                ),
+                    if (cardData != null)
+                      AnimatedBuilder(
+                        animation: _cardController,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(0, _cardSlide.value),
+                            child: Opacity(
+                              opacity: (_cardController.value * 2).clamp(
+                                0.0,
+                                1.0,
                               ),
-                              SizedBox(width: 8),
-                              Icon(Icons.auto_awesome, color: Color(0xFF2B9BF4), size: 22),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // ── Tarjeta con rotación ─────────────────────────
-                          AnimatedBuilder(
-                            animation: _cardRotation,
-                            builder: (context, child) {
-                              return Transform.rotate(
-                                angle: _cardRotation.value,
-                                child: child,
-                              );
-                            },
-                            child: Container(
-                              width: 260,
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFCEAE5),
-                                borderRadius: BorderRadius.circular(32),
-                                border: Border.all(
-                                  color: const Color(0xFF7A8B7A),
-                                  width: 3,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Column(
+                          children: [
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.auto_awesome,
+                                  color: Color(0xFFF39C12),
+                                  size: 22,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF7A8B7A).withValues(alpha: 0.3),
-                                    blurRadius: 25,
-                                    offset: const Offset(0, 12),
+                                SizedBox(width: 8),
+                                Text(
+                                  '¡Nueva tarjeta descubierta!',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF3E4E42),
                                   ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(24),
-                                    child: Image.asset(
-                                      cardData.imagePath,
-                                      height: 200,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) =>
-                                          Container(
+                                ),
+                                SizedBox(width: 8),
+                                Icon(
+                                  Icons.auto_awesome,
+                                  color: Color(0xFF2B9BF4),
+                                  size: 22,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            // ── Tarjeta con rotación ─────────────────────────
+                            AnimatedBuilder(
+                              animation: _cardRotation,
+                              builder: (context, child) {
+                                return Transform.rotate(
+                                  angle: _cardRotation.value,
+                                  child: child,
+                                );
+                              },
+                              child: Container(
+                                width: 260,
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFCEAE5),
+                                  borderRadius: BorderRadius.circular(32),
+                                  border: Border.all(
+                                    color: const Color(0xFF7A8B7A),
+                                    width: 3,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF7A8B7A,
+                                      ).withValues(alpha: 0.3),
+                                      blurRadius: 25,
+                                      offset: const Offset(0, 12),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(24),
+                                      child: Image.asset(
+                                        cardData!.imagePath,
                                         height: 200,
-                                        color: Colors.grey.shade300,
-                                        child: const Center(
-                                          child: Icon(Icons.image, size: 50),
-                                        ),
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                Container(
+                                                  height: 200,
+                                                  color: Colors.grey.shade300,
+                                                  child: const Center(
+                                                    child: Icon(
+                                                      Icons.image,
+                                                      size: 50,
+                                                    ),
+                                                  ),
+                                                ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  Text(
-                                    cardData.title,
-                                    style: const TextStyle(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w900,
-                                      color: AppColors.textBrown,
+                                    const SizedBox(height: 14),
+                                    Text(
+                                      cardData!.title,
+                                      style: const TextStyle(
+                                        fontSize: 26,
+                                        fontWeight: FontWeight.w900,
+                                        color: AppColors.textBrown,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    cardData.subtitle,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontStyle: FontStyle.italic,
-                                      color: Colors.grey.shade600,
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      cardData!.subtitle,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontStyle: FontStyle.italic,
+                                        color: Colors.grey.shade600,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                ],
+                                    const SizedBox(height: 8),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
 
                     const SizedBox(height: 40),
 
@@ -375,12 +407,16 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
                               onPressed: () => Navigator.pop(context),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF0F641B),
-                                padding: const EdgeInsets.symmetric(vertical: 20),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 20,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                                 elevation: 4,
-                                shadowColor: const Color(0xFF0F641B).withValues(alpha: 0.4),
+                                shadowColor: const Color(
+                                  0xFF0F641B,
+                                ).withValues(alpha: 0.4),
                               ),
                               child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -394,7 +430,11 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
                                     ),
                                   ),
                                   SizedBox(width: 8),
-                                  Icon(Icons.arrow_forward, color: Colors.white, size: 24),
+                                  Icon(
+                                    Icons.arrow_forward,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
                                 ],
                               ),
                             ),
@@ -417,17 +457,25 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF2B9BF4),
-                                padding: const EdgeInsets.symmetric(vertical: 20),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 20,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                                 elevation: 4,
-                                shadowColor: const Color(0xFF2B9BF4).withValues(alpha: 0.4),
+                                shadowColor: const Color(
+                                  0xFF2B9BF4,
+                                ).withValues(alpha: 0.4),
                               ),
                               child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.menu_book, color: Colors.white, size: 24),
+                                  Icon(
+                                    Icons.menu_book,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
                                   SizedBox(width: 12),
                                   Text(
                                     'Ver enciclopedia',
@@ -485,9 +533,12 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
                     if (random.nextBool()) {
                       return _drawStar(size);
                     }
-                    return Path()
-                      ..addOval(Rect.fromCircle(
-                          center: Offset.zero, radius: size.width / 2));
+                    return Path()..addOval(
+                      Rect.fromCircle(
+                        center: Offset.zero,
+                        radius: size.width / 2,
+                      ),
+                    );
                   },
                 ),
                 ConfettiWidget(
@@ -554,10 +605,7 @@ class _StudentLevelCompleteScreenState extends State<StudentLevelCompleteScreen>
           child: Container(
             width: size,
             height: size,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
         ),
       );

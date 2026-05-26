@@ -15,6 +15,8 @@ class EncyclopediaCardData {
   final String number;
   final IconData typeIcon;
   final Color themeColor;
+  final bool isAnimal;
+  final String biome;
 
   const EncyclopediaCardData({
     required this.id,
@@ -24,6 +26,8 @@ class EncyclopediaCardData {
     required this.number,
     required this.typeIcon,
     required this.themeColor,
+    required this.isAnimal,
+    required this.biome,
   });
 }
 
@@ -43,30 +47,33 @@ class ExpeditionStop {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'questions': questions.map((q) => q.toJson()).toList(),
-        'isCompleted': isCompleted,
-      };
+    'id': id,
+    'title': title,
+    'questions': questions.map((q) => q.toJson()).toList(),
+    'isCompleted': isCompleted,
+  };
 
   factory ExpeditionStop.fromJson(Map<String, dynamic> json) => ExpeditionStop(
-        id: json['id'] ?? 0,
-        title: json['title'] ?? '',
-        questions: json['questions'] != null
-            ? (json['questions'] as List)
-                .map((q) => QuizQuestion.fromJson(q))
-                .toList()
-            : [],
-        isCompleted: json['isCompleted'] ?? false,
-      );
+    id: json['id'] ?? 0,
+    title: json['title'] ?? '',
+    questions: json['questions'] != null
+        ? (json['questions'] as List)
+              .map((q) => QuizQuestion.fromJson(q))
+              .toList()
+        : [],
+    isCompleted: json['isCompleted'] ?? false,
+  );
 
-  ExpeditionStop copyWith({bool? isCompleted, String? title, List<QuizQuestion>? questions}) =>
-      ExpeditionStop(
-        id: id,
-        title: title ?? this.title,
-        questions: questions ?? this.questions,
-        isCompleted: isCompleted ?? this.isCompleted,
-      );
+  ExpeditionStop copyWith({
+    bool? isCompleted,
+    String? title,
+    List<QuizQuestion>? questions,
+  }) => ExpeditionStop(
+    id: id,
+    title: title ?? this.title,
+    questions: questions ?? this.questions,
+    isCompleted: isCompleted ?? this.isCompleted,
+  );
 }
 
 class LevelData {
@@ -77,8 +84,8 @@ class LevelData {
   final List<QuizQuestion> questions;
   final String? backgroundPath;
   final String? backgroundImagePath; // Ruta del asset del bioma para el mapa
-  final List<ExpeditionStop> stops;  // Lista ordenada de paradas
-  final List<int> completedStops;    // IDs de paradas completadas
+  final List<ExpeditionStop> stops; // Lista ordenada de paradas
+  final List<int> completedStops; // IDs de paradas completadas
 
   LevelData({
     required this.id,
@@ -108,38 +115,38 @@ class LevelData {
       hasStops && completedStops.length >= stops.length;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'biome': biome,
-        'isUnlocked': isUnlocked,
-        'questions': questions.map((q) => q.toJson()).toList(),
-        'backgroundPath': backgroundPath,
-        'backgroundImagePath': backgroundImagePath,
-        'stops': stops.map((s) => s.toJson()).toList(),
-        'completedStops': completedStops,
-      };
+    'id': id,
+    'title': title,
+    'biome': biome,
+    'isUnlocked': isUnlocked,
+    'questions': questions.map((q) => q.toJson()).toList(),
+    'backgroundPath': backgroundPath,
+    'backgroundImagePath': backgroundImagePath,
+    'stops': stops.map((s) => s.toJson()).toList(),
+    'completedStops': completedStops,
+  };
 
   factory LevelData.fromJson(Map<String, dynamic> json) => LevelData(
-        id: json['id'],
-        title: json['title'],
-        biome: json['biome'] ?? json['title'], // Retrocompatibilidad
-        isUnlocked: json['isUnlocked'] ?? false,
-        questions: json['questions'] != null
-            ? (json['questions'] as List)
-                .map((q) => QuizQuestion.fromJson(q))
-                .toList()
-            : [],
-        backgroundPath: json['backgroundPath'],
-        backgroundImagePath: json['backgroundImagePath'],
-        stops: json['stops'] != null
-            ? (json['stops'] as List)
-                .map((s) => ExpeditionStop.fromJson(s))
-                .toList()
-            : [],
-        completedStops: json['completedStops'] != null
-            ? List<int>.from(json['completedStops'])
-            : [],
-      );
+    id: json['id'],
+    title: json['title'],
+    biome: json['biome'] ?? json['title'], // Retrocompatibilidad
+    isUnlocked: json['isUnlocked'] ?? false,
+    questions: json['questions'] != null
+        ? (json['questions'] as List)
+              .map((q) => QuizQuestion.fromJson(q))
+              .toList()
+        : [],
+    backgroundPath: json['backgroundPath'],
+    backgroundImagePath: json['backgroundImagePath'],
+    stops: json['stops'] != null
+        ? (json['stops'] as List)
+              .map((s) => ExpeditionStop.fromJson(s))
+              .toList()
+        : [],
+    completedStops: json['completedStops'] != null
+        ? List<int>.from(json['completedStops'])
+        : [],
+  );
 
   LevelData copyWith({
     int? id,
@@ -151,18 +158,17 @@ class LevelData {
     String? backgroundImagePath,
     List<ExpeditionStop>? stops,
     List<int>? completedStops,
-  }) =>
-      LevelData(
-        id: id ?? this.id,
-        title: title ?? this.title,
-        biome: biome ?? this.biome,
-        isUnlocked: isUnlocked ?? this.isUnlocked,
-        questions: questions ?? this.questions,
-        backgroundPath: backgroundPath ?? this.backgroundPath,
-        backgroundImagePath: backgroundImagePath ?? this.backgroundImagePath,
-        stops: stops ?? this.stops,
-        completedStops: completedStops ?? this.completedStops,
-      );
+  }) => LevelData(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    biome: biome ?? this.biome,
+    isUnlocked: isUnlocked ?? this.isUnlocked,
+    questions: questions ?? this.questions,
+    backgroundPath: backgroundPath ?? this.backgroundPath,
+    backgroundImagePath: backgroundImagePath ?? this.backgroundImagePath,
+    stops: stops ?? this.stops,
+    completedStops: completedStops ?? this.completedStops,
+  );
 }
 
 class RewardData {
@@ -183,22 +189,22 @@ class RewardData {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'subtitle': subtitle,
-        'cost': cost,
-        'colorValue': colorValue,
-        'iconCodePoint': iconCodePoint,
-      };
+    'id': id,
+    'title': title,
+    'subtitle': subtitle,
+    'cost': cost,
+    'colorValue': colorValue,
+    'iconCodePoint': iconCodePoint,
+  };
 
   factory RewardData.fromJson(Map<String, dynamic> json) => RewardData(
-        id: json['id'],
-        title: json['title'],
-        subtitle: json['subtitle'],
-        cost: json['cost'],
-        colorValue: json['colorValue'],
-        iconCodePoint: json['iconCodePoint'],
-      );
+    id: json['id'],
+    title: json['title'],
+    subtitle: json['subtitle'],
+    cost: json['cost'],
+    colorValue: json['colorValue'],
+    iconCodePoint: json['iconCodePoint'],
+  );
 }
 
 class StudentData {
@@ -215,18 +221,18 @@ class StudentData {
   });
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'username': username,
-        'password': password,
-        'groupId': groupId,
-      };
+    'name': name,
+    'username': username,
+    'password': password,
+    'groupId': groupId,
+  };
 
   factory StudentData.fromJson(Map<String, dynamic> json) => StudentData(
-        name: json['name'],
-        username: json['username'],
-        password: json['password'],
-        groupId: json['groupId'],
-      );
+    name: json['name'],
+    username: json['username'],
+    password: json['password'],
+    groupId: json['groupId'],
+  );
 }
 
 class GameState extends ChangeNotifier {
@@ -251,7 +257,10 @@ class GameState extends ChangeNotifier {
     if (_studentId == null) return;
     try {
       _prefs?.setInt('local_hearts', _hearts);
-      await Supabase.instance.client.from('profiles').update({'hearts': _hearts}).eq('id', _studentId!);
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'hearts': _hearts})
+          .eq('id', _studentId!);
     } catch (_) {}
   }
 
@@ -271,7 +280,7 @@ class GameState extends ChangeNotifier {
     if (now.isAfter(_nextHeartRegenTime!)) {
       final diff = now.difference(_nextHeartRegenTime!);
       final periodsPassed = 1 + (diff.inMinutes ~/ 5);
-      
+
       _hearts += periodsPassed;
       if (_hearts >= 5) {
         _hearts = 5;
@@ -279,8 +288,13 @@ class GameState extends ChangeNotifier {
         _prefs?.remove('next_heart_regen_time');
       } else {
         final remainderSeconds = (diff.inSeconds % 300);
-        _nextHeartRegenTime = now.add(Duration(seconds: 300 - remainderSeconds));
-        _prefs?.setString('next_heart_regen_time', _nextHeartRegenTime!.toIso8601String());
+        _nextHeartRegenTime = now.add(
+          Duration(seconds: 300 - remainderSeconds),
+        );
+        _prefs?.setString(
+          'next_heart_regen_time',
+          _nextHeartRegenTime!.toIso8601String(),
+        );
         _startHeartRegenTimer();
       }
       notifyListeners();
@@ -294,9 +308,12 @@ class GameState extends ChangeNotifier {
     _heartRegenTimer?.cancel();
     if (_nextHeartRegenTime == null) {
       _nextHeartRegenTime = DateTime.now().add(const Duration(minutes: 5));
-      _prefs?.setString('next_heart_regen_time', _nextHeartRegenTime!.toIso8601String());
+      _prefs?.setString(
+        'next_heart_regen_time',
+        _nextHeartRegenTime!.toIso8601String(),
+      );
     }
-    
+
     _heartRegenTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       final now = DateTime.now();
       if (_nextHeartRegenTime != null && now.isAfter(_nextHeartRegenTime!)) {
@@ -308,7 +325,10 @@ class GameState extends ChangeNotifier {
           timer.cancel();
         } else {
           _nextHeartRegenTime = DateTime.now().add(const Duration(minutes: 5));
-          _prefs?.setString('next_heart_regen_time', _nextHeartRegenTime!.toIso8601String());
+          _prefs?.setString(
+            'next_heart_regen_time',
+            _nextHeartRegenTime!.toIso8601String(),
+          );
         }
         _syncHeartsToSupabase();
       }
@@ -321,46 +341,226 @@ class GameState extends ChangeNotifier {
 
   List<LevelData> _levels = [
     // Ciudad
-    LevelData(id: 0, title: 'Nivel 1', biome: 'Ciudad', isUnlocked: true, backgroundImagePath: 'assets/images/biome_city.png'),
-    LevelData(id: 1, title: 'Nivel 2', biome: 'Ciudad', isUnlocked: false, backgroundImagePath: 'assets/images/biome_city.png'),
-    LevelData(id: 2, title: 'Nivel 3', biome: 'Ciudad', isUnlocked: false, backgroundImagePath: 'assets/images/biome_city.png'),
-    LevelData(id: 3, title: 'Nivel 4', biome: 'Ciudad', isUnlocked: false, backgroundImagePath: 'assets/images/biome_city.png'),
-    LevelData(id: 4, title: 'Nivel 5', biome: 'Ciudad', isUnlocked: false, backgroundImagePath: 'assets/images/biome_city.png'),
-    
+    LevelData(
+      id: 0,
+      title: 'Nivel 1',
+      biome: 'Ciudad',
+      isUnlocked: true,
+      backgroundImagePath: 'assets/images/biome_city.png',
+    ),
+    LevelData(
+      id: 1,
+      title: 'Nivel 2',
+      biome: 'Ciudad',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_city.png',
+    ),
+    LevelData(
+      id: 2,
+      title: 'Nivel 3',
+      biome: 'Ciudad',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_city.png',
+    ),
+    LevelData(
+      id: 3,
+      title: 'Nivel 4',
+      biome: 'Ciudad',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_city.png',
+    ),
+    LevelData(
+      id: 4,
+      title: 'Nivel 5',
+      biome: 'Ciudad',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_city.png',
+    ),
+
     // Manglar
-    LevelData(id: 5, title: 'Nivel 1', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
-    LevelData(id: 6, title: 'Nivel 2', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
-    LevelData(id: 7, title: 'Nivel 3', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
-    LevelData(id: 8, title: 'Nivel 4', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
-    LevelData(id: 9, title: 'Nivel 5', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
+    LevelData(
+      id: 5,
+      title: 'Nivel 1',
+      biome: 'Manglar',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_mangrove.png',
+    ),
+    LevelData(
+      id: 6,
+      title: 'Nivel 2',
+      biome: 'Manglar',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_mangrove.png',
+    ),
+    LevelData(
+      id: 7,
+      title: 'Nivel 3',
+      biome: 'Manglar',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_mangrove.png',
+    ),
+    LevelData(
+      id: 8,
+      title: 'Nivel 4',
+      biome: 'Manglar',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_mangrove.png',
+    ),
+    LevelData(
+      id: 9,
+      title: 'Nivel 5',
+      biome: 'Manglar',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_mangrove.png',
+    ),
 
     // Arrecife
-    LevelData(id: 10, title: 'Nivel 1', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
-    LevelData(id: 11, title: 'Nivel 2', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
-    LevelData(id: 12, title: 'Nivel 3', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
-    LevelData(id: 13, title: 'Nivel 4', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
-    LevelData(id: 14, title: 'Nivel 5', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
+    LevelData(
+      id: 10,
+      title: 'Nivel 1',
+      biome: 'Arrecife',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_reef.png',
+    ),
+    LevelData(
+      id: 11,
+      title: 'Nivel 2',
+      biome: 'Arrecife',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_reef.png',
+    ),
+    LevelData(
+      id: 12,
+      title: 'Nivel 3',
+      biome: 'Arrecife',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_reef.png',
+    ),
+    LevelData(
+      id: 13,
+      title: 'Nivel 4',
+      biome: 'Arrecife',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_reef.png',
+    ),
+    LevelData(
+      id: 14,
+      title: 'Nivel 5',
+      biome: 'Arrecife',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_reef.png',
+    ),
 
     // Bosque
-    LevelData(id: 15, title: 'Nivel 1', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
-    LevelData(id: 16, title: 'Nivel 2', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
-    LevelData(id: 17, title: 'Nivel 3', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
-    LevelData(id: 18, title: 'Nivel 4', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
-    LevelData(id: 19, title: 'Nivel 5', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
+    LevelData(
+      id: 15,
+      title: 'Nivel 1',
+      biome: 'Bosque',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_forest.png',
+    ),
+    LevelData(
+      id: 16,
+      title: 'Nivel 2',
+      biome: 'Bosque',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_forest.png',
+    ),
+    LevelData(
+      id: 17,
+      title: 'Nivel 3',
+      biome: 'Bosque',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_forest.png',
+    ),
+    LevelData(
+      id: 18,
+      title: 'Nivel 4',
+      biome: 'Bosque',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_forest.png',
+    ),
+    LevelData(
+      id: 19,
+      title: 'Nivel 5',
+      biome: 'Bosque',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_forest.png',
+    ),
 
     // Selva
-    LevelData(id: 20, title: 'Nivel 1', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
-    LevelData(id: 21, title: 'Nivel 2', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
-    LevelData(id: 22, title: 'Nivel 3', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
-    LevelData(id: 23, title: 'Nivel 4', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
-    LevelData(id: 24, title: 'Nivel 5', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
+    LevelData(
+      id: 20,
+      title: 'Nivel 1',
+      biome: 'Selva',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_jungle.png',
+    ),
+    LevelData(
+      id: 21,
+      title: 'Nivel 2',
+      biome: 'Selva',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_jungle.png',
+    ),
+    LevelData(
+      id: 22,
+      title: 'Nivel 3',
+      biome: 'Selva',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_jungle.png',
+    ),
+    LevelData(
+      id: 23,
+      title: 'Nivel 4',
+      biome: 'Selva',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_jungle.png',
+    ),
+    LevelData(
+      id: 24,
+      title: 'Nivel 5',
+      biome: 'Selva',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_jungle.png',
+    ),
 
     // Desierto
-    LevelData(id: 25, title: 'Nivel 1', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
-    LevelData(id: 26, title: 'Nivel 2', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
-    LevelData(id: 27, title: 'Nivel 3', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
-    LevelData(id: 28, title: 'Nivel 4', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
-    LevelData(id: 29, title: 'Nivel 5', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
+    LevelData(
+      id: 25,
+      title: 'Nivel 1',
+      biome: 'Desierto',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_desert.png',
+    ),
+    LevelData(
+      id: 26,
+      title: 'Nivel 2',
+      biome: 'Desierto',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_desert.png',
+    ),
+    LevelData(
+      id: 27,
+      title: 'Nivel 3',
+      biome: 'Desierto',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_desert.png',
+    ),
+    LevelData(
+      id: 28,
+      title: 'Nivel 4',
+      biome: 'Desierto',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_desert.png',
+    ),
+    LevelData(
+      id: 29,
+      title: 'Nivel 5',
+      biome: 'Desierto',
+      isUnlocked: false,
+      backgroundImagePath: 'assets/images/biome_desert.png',
+    ),
   ];
   List<LevelData> get levels => _levels;
 
@@ -414,9 +614,11 @@ class GameState extends ChangeNotifier {
     final lower = biome.toLowerCase();
     if (lower.contains('ciudad')) return 'assets/images/biome_city.png';
     if (lower.contains('manglar')) return 'assets/images/biome_mangrove.png';
-    if (lower.contains('arrecife') || lower.contains('mar')) return 'assets/images/biome_reef.png';
+    if (lower.contains('arrecife') || lower.contains('mar'))
+      return 'assets/images/biome_reef.png';
     if (lower.contains('bosque')) return 'assets/images/biome_forest.png';
-    if (lower.contains('selva') || lower.contains('jungla')) return 'assets/images/biome_jungle.png';
+    if (lower.contains('selva') || lower.contains('jungla'))
+      return 'assets/images/biome_jungle.png';
     if (lower.contains('desierto')) return 'assets/images/biome_desert.png';
     if (lower.contains('tundra')) return 'assets/images/biome_tundra.png';
     return 'assets/images/biome_forest.png';
@@ -505,8 +707,15 @@ class GameState extends ChangeNotifier {
 
   // ---- Métodos de Expediciones ----
   /// Crea una expedición completa con paradas.
-  void addExpedition(String title, String? backgroundImagePath, List<ExpeditionStop> stops, {String biome = 'Personalizado'}) {
-    final newId = _levels.isEmpty ? 0 : _levels.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
+  void addExpedition(
+    String title,
+    String? backgroundImagePath,
+    List<ExpeditionStop> stops, {
+    String biome = 'Personalizado',
+  }) {
+    final newId = _levels.isEmpty
+        ? 0
+        : _levels.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
     final level = LevelData(
       id: newId,
       title: title,
@@ -539,7 +748,8 @@ class GameState extends ChangeNotifier {
     if (index != -1) {
       final level = _levels[index];
       if (!level.completedStops.contains(stopId)) {
-        final updatedCompleted = List<int>.from(level.completedStops)..add(stopId);
+        final updatedCompleted = List<int>.from(level.completedStops)
+          ..add(stopId);
         _levels[index] = level.copyWith(completedStops: updatedCompleted);
         _saveLevels();
       }
@@ -557,8 +767,12 @@ class GameState extends ChangeNotifier {
 
   void addLevel(String title, {String biome = 'Bosque'}) {
     final newList = List<LevelData>.from(_levels);
-    final newId = newList.isEmpty ? 0 : newList.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
-    newList.add(LevelData(id: newId, title: title, biome: biome, isUnlocked: true));
+    final newId = newList.isEmpty
+        ? 0
+        : newList.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
+    newList.add(
+      LevelData(id: newId, title: title, biome: biome, isUnlocked: true),
+    );
     _levels = newList;
     _saveLevels();
 
@@ -580,12 +794,16 @@ class GameState extends ChangeNotifier {
       // Polyfill: Empacar toda la expedición (incluyendo paradas y preguntas) como JSON en el campo biome
       final String biomePayload = jsonEncode(level.toJson());
 
-      final result = await client.from('levels').insert({
-        'title': level.title,
-        'biome': biomePayload,
-        'order_index': nextOrder,
-        'is_active': true,
-      }).select().single();
+      final result = await client
+          .from('levels')
+          .insert({
+            'title': level.title,
+            'biome': biomePayload,
+            'order_index': nextOrder,
+            'is_active': true,
+          })
+          .select()
+          .single();
 
       // Actualizar el ID local con el ID real de Supabase
       final supabaseId = result['id'] as int;
@@ -601,8 +819,15 @@ class GameState extends ChangeNotifier {
     }
   }
 
-  void addLevelWithQuestions(String title, String? backgroundPath, List<QuizQuestion> questions, {String biome = 'Bosque'}) {
-    final newId = _levels.isEmpty ? 0 : _levels.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
+  void addLevelWithQuestions(
+    String title,
+    String? backgroundPath,
+    List<QuizQuestion> questions, {
+    String biome = 'Bosque',
+  }) {
+    final newId = _levels.isEmpty
+        ? 0
+        : _levels.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
     final level = LevelData(
       id: newId,
       title: title,
@@ -625,32 +850,39 @@ class GameState extends ChangeNotifier {
       _levels[index] = level.copyWith(questions: newQuestions);
       _saveLevels();
       notifyListeners();
-      
+
       // Persistir a Supabase
       _persistQuestionsToSupabase(levelId, newQuestions);
     }
   }
 
-  Future<void> _persistQuestionsToSupabase(int levelId, List<QuizQuestion> questions) async {
+  Future<void> _persistQuestionsToSupabase(
+    int levelId,
+    List<QuizQuestion> questions,
+  ) async {
     try {
       final client = Supabase.instance.client;
       // Primero, eliminar preguntas anteriores de este nivel
       await client.from('questions').delete().eq('level_id', levelId);
-      
+
       // Si no hay nuevas, terminamos
       if (questions.isEmpty) return;
-      
+
       // Insertar las nuevas
-      final rows = questions.map((q) => {
-        'level_id': levelId,
-        'question_text': q.questionText,
-        'image_url': q.imageAssetPath,
-        'options': q.options,
-        'correct_index': q.correctOptionIndex,
-        'hint': q.hint,
-        'fun_fact': q.funFact,
-      }).toList();
-      
+      final rows = questions
+          .map(
+            (q) => {
+              'level_id': levelId,
+              'question_text': q.questionText,
+              'image_url': q.imageAssetPath,
+              'options': q.options,
+              'correct_index': q.correctOptionIndex,
+              'hint': q.hint,
+              'fun_fact': q.funFact,
+            },
+          )
+          .toList();
+
       await client.from('questions').insert(rows);
     } catch (e) {
       debugPrint('Error saving questions to Supabase: $e');
@@ -705,12 +937,12 @@ class GameState extends ChangeNotifier {
       _levelStars[levelId.toString()] = starsEarned;
       _recalculateTotalStars();
     }
-    
+
     // Desbloquear el siguiente nivel automáticamente
     if (starsEarned > 0) {
       _unlockNextLevel(levelId);
     }
-    
+
     // Sincronizar siempre con Supabase (fire-and-forget) para registrar actividad
     _syncStarsToSupabase(levelId, starsEarned);
   }
@@ -730,7 +962,7 @@ class GameState extends ChangeNotifier {
     if (_studentId == null) return;
     try {
       final client = Supabase.instance.client;
-      
+
       // 1. Obtener las estrellas anteriores del alumno para este nivel
       final previousResult = await client
           .from('student_progress')
@@ -751,7 +983,9 @@ class GameState extends ChangeNotifier {
       await client.from('student_progress').upsert({
         'student_id': _studentId!,
         'level_id': levelId,
-        'stars_earned': starsEarned > previousStars ? starsEarned : previousStars,
+        'stars_earned': starsEarned > previousStars
+            ? starsEarned
+            : previousStars,
         'is_completed': true,
         'completed_at': DateTime.now().toIso8601String(),
       }, onConflict: 'student_id,level_id');
@@ -774,7 +1008,7 @@ class GameState extends ChangeNotifier {
     for (var stars in _levelStars.values) {
       total += stars;
     }
-    
+
     int spent = 0;
     for (final reward in _rewards) {
       if (_purchasedRewards.contains(reward.id)) {
@@ -813,61 +1047,348 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---- Lista de tarjetas (Fija por ahora, ya que el profe aceptó que el journal quede igual) ----
+  // ---- Lista de 30 Tarjetas (5 por bioma: mitad animales, mitad plantas/elementos) ----
   static const List<EncyclopediaCardData> allCards = [
+    // Ciudad
     EncyclopediaCardData(
       id: 0,
-      title: 'Ajolote',
-      subtitle: 'Ambystoma mexicanum',
-      imagePath: 'assets/images/card_ajolote_1778451548363.png',
-      number: '#012',
-      typeIcon: Icons.water_drop,
-      themeColor: Color(0xFF873600), // Brown
+      title: 'Perro Callejero',
+      subtitle: 'Canis familiaris',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#001',
+      typeIcon: Icons.pets,
+      themeColor: Color(0xFFE67E22),
+      isAnimal: true,
+      biome: 'Ciudad',
     ),
     EncyclopediaCardData(
       id: 1,
-      title: 'Tucán',
-      subtitle: 'Ramphastidae',
-      imagePath: 'assets/images/quiz_toucan_1778462119800.png',
-      number: '#045',
+      title: 'Paloma',
+      subtitle: 'Columba livia',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#002',
       typeIcon: Icons.flutter_dash,
-      themeColor: Color(0xFF27AE60), // Green
+      themeColor: Color(0xFF7F8C8D),
+      isAnimal: true,
+      biome: 'Ciudad',
     ),
     EncyclopediaCardData(
       id: 2,
-      title: 'Tortuga Marina',
-      subtitle: 'Chelonioidea',
-      imagePath: 'assets/images/quiz_turtle_1778463514370.png',
-      number: '#023',
-      typeIcon: Icons.water,
-      themeColor: Color(0xFF2980B9), // Blue
+      title: 'Jacaranda',
+      subtitle: 'Jacaranda mimosifolia',
+      imagePath: 'assets/images/generic_plant_card.png',
+      number: '#003',
+      typeIcon: Icons.local_florist,
+      themeColor: Color(0xFF9B59B6),
+      isAnimal: false,
+      biome: 'Ciudad',
     ),
     EncyclopediaCardData(
       id: 3,
-      title: 'Mariposa Monarca',
-      subtitle: 'Danaus plexippus',
-      imagePath: 'assets/images/quiz_butterfly_1778463527262.png',
-      number: '#008',
-      typeIcon: Icons.bug_report,
-      themeColor: Color(0xFFD35400), // Orange
+      title: 'Enredadera',
+      subtitle: 'Hedera helix',
+      imagePath: 'assets/images/generic_plant_card.png',
+      number: '#004',
+      typeIcon: Icons.eco,
+      themeColor: Color(0xFF27AE60),
+      isAnimal: false,
+      biome: 'Ciudad',
     ),
     EncyclopediaCardData(
       id: 4,
-      title: 'Jaguar',
-      subtitle: 'Panthera onca',
-      imagePath: 'assets/images/card_jaguar_1778451534575.png',
-      number: '#001',
+      title: 'Gato Feral',
+      subtitle: 'Felis catus',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#005',
       typeIcon: Icons.pets,
-      themeColor: Color(0xFFF39C12), // Yellow/Orange
+      themeColor: Color(0xFF34495E),
+      isAnimal: true,
+      biome: 'Ciudad',
     ),
+
+    // Manglar
     EncyclopediaCardData(
       id: 5,
+      title: 'Cocodrilo',
+      subtitle: 'Crocodylus acutus',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#006',
+      typeIcon: Icons.pets,
+      themeColor: Color(0xFF145A32),
+      isAnimal: true,
+      biome: 'Manglar',
+    ),
+    EncyclopediaCardData(
+      id: 6,
+      title: 'Mangle Rojo',
+      subtitle: 'Rhizophora mangle',
+      imagePath: 'assets/images/generic_plant_card.png',
+      number: '#007',
+      typeIcon: Icons.park,
+      themeColor: Color(0xFFE74C3C),
+      isAnimal: false,
+      biome: 'Manglar',
+    ),
+    EncyclopediaCardData(
+      id: 7,
+      title: 'Garza',
+      subtitle: 'Ardea alba',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#008',
+      typeIcon: Icons.flutter_dash,
+      themeColor: Color(0xFFBDC3C7),
+      isAnimal: true,
+      biome: 'Manglar',
+    ),
+    EncyclopediaCardData(
+      id: 8,
+      title: 'Cangrejo',
+      subtitle: 'Brachyura',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#009',
+      typeIcon: Icons.bug_report,
+      themeColor: Color(0xFFC0392B),
+      isAnimal: true,
+      biome: 'Manglar',
+    ),
+    EncyclopediaCardData(
+      id: 9,
+      title: 'Mangle Blanco',
+      subtitle: 'Laguncularia racemosa',
+      imagePath: 'assets/images/generic_plant_card.png',
+      number: '#010',
+      typeIcon: Icons.park,
+      themeColor: Color(0xFFF1C40F),
+      isAnimal: false,
+      biome: 'Manglar',
+    ),
+
+    // Arrecife
+    EncyclopediaCardData(
+      id: 10,
+      title: 'Tortuga Marina',
+      subtitle: 'Chelonioidea',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#011',
+      typeIcon: Icons.water,
+      themeColor: Color(0xFF2980B9),
+      isAnimal: true,
+      biome: 'Arrecife',
+    ),
+    EncyclopediaCardData(
+      id: 11,
+      title: 'Pez Payaso',
+      subtitle: 'Amphiprioninae',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#012',
+      typeIcon: Icons.pets,
+      themeColor: Color(0xFFE67E22),
+      isAnimal: true,
+      biome: 'Arrecife',
+    ),
+    EncyclopediaCardData(
+      id: 12,
+      title: 'Coral Cerebro',
+      subtitle: 'Faviidae',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#013',
+      typeIcon: Icons.blur_on,
+      themeColor: Color(0xFF8E44AD),
+      isAnimal: true,
+      biome: 'Arrecife',
+    ),
+    EncyclopediaCardData(
+      id: 13,
+      title: 'Alga Marina',
+      subtitle: 'Chlorophyta',
+      imagePath: 'assets/images/generic_plant_card.png',
+      number: '#014',
+      typeIcon: Icons.eco,
+      themeColor: Color(0xFF229954),
+      isAnimal: false,
+      biome: 'Arrecife',
+    ),
+    EncyclopediaCardData(
+      id: 14,
+      title: 'Esponja de Mar',
+      subtitle: 'Porifera',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#015',
+      typeIcon: Icons.bubble_chart,
+      themeColor: Color(0xFFF1C40F),
+      isAnimal: true,
+      biome: 'Arrecife',
+    ),
+
+    // Bosque
+    EncyclopediaCardData(
+      id: 15,
+      title: 'Lobo',
+      subtitle: 'Canis lupus',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#016',
+      typeIcon: Icons.pets,
+      themeColor: Color(0xFF7F8C8D),
+      isAnimal: true,
+      biome: 'Bosque',
+    ),
+    EncyclopediaCardData(
+      id: 16,
+      title: 'Búho',
+      subtitle: 'Strigiformes',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#017',
+      typeIcon: Icons.flutter_dash,
+      themeColor: Color(0xFF5D6D7E),
+      isAnimal: true,
+      biome: 'Bosque',
+    ),
+    EncyclopediaCardData(
+      id: 17,
+      title: 'Ciervo',
+      subtitle: 'Cervidae',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#018',
+      typeIcon: Icons.pets,
+      themeColor: Color(0xFFD35400),
+      isAnimal: true,
+      biome: 'Bosque',
+    ),
+    EncyclopediaCardData(
+      id: 18,
+      title: 'Encino',
+      subtitle: 'Quercus',
+      imagePath: 'assets/images/generic_plant_card.png',
+      number: '#019',
+      typeIcon: Icons.park,
+      themeColor: Color(0xFF27AE60),
+      isAnimal: false,
+      biome: 'Bosque',
+    ),
+    EncyclopediaCardData(
+      id: 19,
+      title: 'Musgo',
+      subtitle: 'Bryophyta',
+      imagePath: 'assets/images/generic_plant_card.png',
+      number: '#020',
+      typeIcon: Icons.eco,
+      themeColor: Color(0xFF1E8449),
+      isAnimal: false,
+      biome: 'Bosque',
+    ),
+
+    // Selva
+    EncyclopediaCardData(
+      id: 20,
+      title: 'Jaguar',
+      subtitle: 'Panthera onca',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#021',
+      typeIcon: Icons.pets,
+      themeColor: Color(0xFFF39C12),
+      isAnimal: true,
+      biome: 'Selva',
+    ),
+    EncyclopediaCardData(
+      id: 21,
+      title: 'Tucán',
+      subtitle: 'Ramphastidae',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#022',
+      typeIcon: Icons.flutter_dash,
+      themeColor: Color(0xFF2ECC71),
+      isAnimal: true,
+      biome: 'Selva',
+    ),
+    EncyclopediaCardData(
+      id: 22,
+      title: 'Mono Araña',
+      subtitle: 'Ateles',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#023',
+      typeIcon: Icons.pets,
+      themeColor: Color(0xFF873600),
+      isAnimal: true,
+      biome: 'Selva',
+    ),
+    EncyclopediaCardData(
+      id: 23,
+      title: 'Orquídea',
+      subtitle: 'Orchidaceae',
+      imagePath: 'assets/images/generic_plant_card.png',
+      number: '#024',
+      typeIcon: Icons.local_florist,
+      themeColor: Color(0xFFE74C3C),
+      isAnimal: false,
+      biome: 'Selva',
+    ),
+    EncyclopediaCardData(
+      id: 24,
+      title: 'Liana',
+      subtitle: 'Bignoniaceae',
+      imagePath: 'assets/images/generic_plant_card.png',
+      number: '#025',
+      typeIcon: Icons.eco,
+      themeColor: Color(0xFF145A32),
+      isAnimal: false,
+      biome: 'Selva',
+    ),
+
+    // Desierto
+    EncyclopediaCardData(
+      id: 25,
       title: 'Zorro del Desierto',
       subtitle: 'Vulpes zerda',
-      imagePath: 'assets/images/quiz_fox_1778463541718.png',
-      number: '#055',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#026',
       typeIcon: Icons.pets,
-      themeColor: Color(0xFFE67E22), // Sand Orange
+      themeColor: Color(0xFFE67E22),
+      isAnimal: true,
+      biome: 'Desierto',
+    ),
+    EncyclopediaCardData(
+      id: 26,
+      title: 'Serpiente Cascabel',
+      subtitle: 'Crotalus',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#027',
+      typeIcon: Icons.gesture,
+      themeColor: Color(0xFFD35400),
+      isAnimal: true,
+      biome: 'Desierto',
+    ),
+    EncyclopediaCardData(
+      id: 27,
+      title: 'Correcaminos',
+      subtitle: 'Geococcyx',
+      imagePath: 'assets/images/generic_animal_card.png',
+      number: '#028',
+      typeIcon: Icons.flutter_dash,
+      themeColor: Color(0xFF3498DB),
+      isAnimal: true,
+      biome: 'Desierto',
+    ),
+    EncyclopediaCardData(
+      id: 28,
+      title: 'Cactus Saguaro',
+      subtitle: 'Carnegiea gigantea',
+      imagePath: 'assets/images/generic_plant_card.png',
+      number: '#029',
+      typeIcon: Icons.park,
+      themeColor: Color(0xFF27AE60),
+      isAnimal: false,
+      biome: 'Desierto',
+    ),
+    EncyclopediaCardData(
+      id: 29,
+      title: 'Aloe Vera',
+      subtitle: 'Aloe barbadensis',
+      imagePath: 'assets/images/generic_plant_card.png',
+      number: '#030',
+      typeIcon: Icons.eco,
+      themeColor: Color(0xFF2ECC71),
+      isAnimal: false,
+      biome: 'Desierto',
     ),
   ];
 
@@ -886,10 +1407,10 @@ class GameState extends ChangeNotifier {
   Future<bool> spendStars(String rewardId, int cost) async {
     if (_totalStars >= cost && !_purchasedRewards.contains(rewardId)) {
       _totalStars -= cost;
-      
+
       _purchasedRewards.add(rewardId);
       _recalculateTotalStars();
-      
+
       // Sincronizar compra a Supabase (fire-and-forget)
       _syncPurchaseToSupabase(rewardId);
       notifyListeners();
@@ -916,8 +1437,52 @@ class GameState extends ChangeNotifier {
     return _purchasedRewards.contains(rewardId);
   }
 
+  // ── Tarjetas Coleccionables (Journal) ───────────────────────────
+  EncyclopediaCardData? unlockRandomCardForBiome(String biome) {
+    // 1. Filtrar las tarjetas que pertenecen a este bioma
+    final biomeCards = allCards
+        .where((c) => c.biome.toLowerCase() == biome.toLowerCase())
+        .toList();
+
+    // 2. Encontrar cuáles aún no están desbloqueadas
+    final lockedCards = biomeCards
+        .where((c) => !_unlockedCards.contains(c.id))
+        .toList();
+
+    if (lockedCards.isEmpty) {
+      return null; // Ya tiene todas las tarjetas de este bioma
+    }
+
+    // 3. Seleccionar una al azar
+    final random = Random();
+    final selectedCard = lockedCards[random.nextInt(lockedCards.length)];
+
+    // 4. Desbloquearla y guardar
+    _unlockedCards.add(selectedCard.id);
+    _syncUnlockedCardToSupabase(selectedCard.id);
+    notifyListeners();
+
+    return selectedCard;
+  }
+
+  Future<void> _syncUnlockedCardToSupabase(int cardId) async {
+    if (_studentId == null) return;
+    try {
+      final client = Supabase.instance.client;
+      await client.from('unlocked_cards').upsert({
+        'student_id': _studentId!,
+        'card_id': cardId,
+      }, onConflict: 'student_id,card_id');
+    } catch (e) {
+      debugPrint('⚠️ Error sincronizando tarjeta desbloqueada a Supabase: $e');
+    }
+  }
+
   // ── Creación masiva de alumnos ─────────────────────────────────
-  List<StudentData> addStudentsInBulk(List<String> studentNames, String groupId) {
+  List<StudentData> addStudentsInBulk(
+    List<String> studentNames,
+    String groupId,
+  ) {
     final rng = Random();
     final newStudents = <StudentData>[];
 
@@ -928,17 +1493,21 @@ class GameState extends ChangeNotifier {
       final parts = trimmed.split(RegExp(r'\s+'));
       final firstName = parts.first.toLowerCase();
       final lastName = parts.length > 1 ? parts.last.toLowerCase() : '';
-      final groupSuffix = groupId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
+      final groupSuffix = groupId
+          .replaceAll(RegExp(r'[^a-zA-Z0-9]'), '')
+          .toLowerCase();
       final username = '${firstName[0]}$lastName$groupSuffix';
 
       final password = 'eco${rng.nextInt(9000) + 1000}';
 
-      newStudents.add(StudentData(
-        name: trimmed,
-        username: username,
-        password: password,
-        groupId: groupId,
-      ));
+      newStudents.add(
+        StudentData(
+          name: trimmed,
+          username: username,
+          password: password,
+          groupId: groupId,
+        ),
+      );
     }
 
     _students.addAll(newStudents);
@@ -1006,13 +1575,24 @@ class GameState extends ChangeNotifier {
         progressMap[row['level_id'].toString()] = row['stars_earned'] as int;
       }
 
+      // Obtener tarjetas desbloqueadas
+      final cardsResult = await client
+          .from('unlocked_cards')
+          .select('card_id')
+          .eq('student_id', studentId);
+
+      _unlockedCards.clear();
+      for (final row in cardsResult) {
+        _unlockedCards.add(row['card_id'] as int);
+      }
+
       // ── Mapeo de Preguntas desde Supabase ───────────────────────────
       final questionsResult = await client.from('questions').select();
       final questionsByLevel = <int, List<QuizQuestion>>{};
 
       for (final row in questionsResult) {
         final levelId = row['level_id'] as int;
-        
+
         // Supabase guarda options como JSONB, convertimos a List<String>
         final optionsRaw = row['options'];
         final List<String> options = optionsRaw is List
@@ -1038,12 +1618,13 @@ class GameState extends ChangeNotifier {
 
         for (final json in levelsResult) {
           final id = json['id'] as int;
-          
+
           // Desbloquear si es el primero (unlockedCount == 0) o si completó el anterior
-          final isUnlocked = unlockedCount == 0 ||
+          final isUnlocked =
+              unlockedCount == 0 ||
               (progressMap.containsKey((id - 1).toString()) &&
-               (progressMap[(id - 1).toString()] ?? 0) > 0);
-          
+                  (progressMap[(id - 1).toString()] ?? 0) > 0);
+
           if (isUnlocked) unlockedCount++;
 
           final rawBiome = json['biome'] as String?;
@@ -1057,22 +1638,29 @@ class GameState extends ChangeNotifier {
           final completedStops = <int>[];
 
           final local = localLevelsMap[id];
-          
+
           // Priorizamos las preguntas exactas del nodo, si no, las del bioma (id ~/ 5), si no, usamos las locales/genéricas
           final biomeIndex = id ~/ 5;
-          final finalQuestions = questionsByLevel[id] ?? questionsByLevel[biomeIndex] ?? local?.questions ?? [];
+          final finalQuestions =
+              questionsByLevel[id] ??
+              questionsByLevel[biomeIndex] ??
+              local?.questions ??
+              [];
 
-          syncedLevels.add(LevelData(
-            id: id,
-            title: title,
-            biome: biome,
-            isUnlocked: isUnlocked,
-            questions: finalQuestions,
-            backgroundPath: local?.backgroundPath,
-            backgroundImagePath: local?.backgroundImagePath ?? _defaultBiomeImage(biome),
-            stops: stops,
-            completedStops: completedStops,
-          ));
+          syncedLevels.add(
+            LevelData(
+              id: id,
+              title: title,
+              biome: biome,
+              isUnlocked: isUnlocked,
+              questions: finalQuestions,
+              backgroundPath: local?.backgroundPath,
+              backgroundImagePath:
+                  local?.backgroundImagePath ?? _defaultBiomeImage(biome),
+              stops: stops,
+              completedStops: completedStops,
+            ),
+          );
         }
 
         _levels = syncedLevels;
@@ -1081,17 +1669,21 @@ class GameState extends ChangeNotifier {
       } else {
         // Usar los niveles locales por defecto si la BD está vacía
         _levelStars = progressMap;
-        
+
         // La base de datos está vacía en 'levels', así que subimos nuestros niveles locales
         try {
-          final levelsToInsert = _levels.map((l) => {
-            'id': l.id,
-            'title': l.title,
-            'biome': l.biome,
-            'order_index': l.id,
-            'is_active': true,
-          }).toList();
-          
+          final levelsToInsert = _levels
+              .map(
+                (l) => {
+                  'id': l.id,
+                  'title': l.title,
+                  'biome': l.biome,
+                  'order_index': l.id,
+                  'is_active': true,
+                },
+              )
+              .toList();
+
           await client.from('levels').upsert(levelsToInsert);
         } catch (e) {
           debugPrint('Error uploading default levels to Supabase: $e');
@@ -1102,12 +1694,14 @@ class GameState extends ChangeNotifier {
         for (int i = 0; i < _levels.length; i++) {
           final currentLevel = _levels[i];
           final stars = _levelStars[currentLevel.id.toString()] ?? 0;
-          
+
           bool shouldUpdate = false;
           bool newUnlocked = currentLevel.isUnlocked;
           List<QuizQuestion> newQuestions = currentLevel.questions;
 
-          if (i < _levels.length - 1 && stars > 0 && !_levels[i + 1].isUnlocked) {
+          if (i < _levels.length - 1 &&
+              stars > 0 &&
+              !_levels[i + 1].isUnlocked) {
             _levels[i + 1] = _levels[i + 1].copyWith(isUnlocked: true);
             levelsModified = true;
           }
@@ -1174,7 +1768,8 @@ class GameState extends ChangeNotifier {
               subtitle: json['subtitle'] as String? ?? '',
               cost: json['cost'] as int? ?? 50,
               colorValue: colorMap[colorHex] ?? 0xFF8E44AD,
-              iconCodePoint: (iconMap[iconName] ?? Icons.card_giftcard).codePoint,
+              iconCodePoint:
+                  (iconMap[iconName] ?? Icons.card_giftcard).codePoint,
             );
           }).toList();
           _rewards = syncedRewards;
@@ -1203,7 +1798,7 @@ class GameState extends ChangeNotifier {
       if (profileResult != null) {
         _hearts = profileResult['hearts'] as int? ?? 5;
         _prefs?.setInt('local_hearts', _hearts);
-        
+
         if (_hearts >= 5) {
           _heartRegenTimer?.cancel();
           _nextHeartRegenTime = null;
@@ -1215,7 +1810,6 @@ class GameState extends ChangeNotifier {
 
       // 5. Recalcular estrellas totales
       _recalculateTotalStars();
-
     } catch (e) {
       // Si falla la sync, GameState sigue funcionando con datos locales
       debugPrint('⚠️ Error sincronizando con Supabase: $e');

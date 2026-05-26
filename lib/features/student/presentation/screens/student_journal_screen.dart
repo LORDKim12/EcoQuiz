@@ -34,17 +34,17 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
                 children: [
                   Text(
                     'Enciclopedia',
-                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                          fontSize: 32,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.displayLarge?.copyWith(fontSize: 32),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Colección del Explorador',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.textDark,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -54,7 +54,10 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFCEAE5), // Light pinkish orange
                   borderRadius: BorderRadius.circular(16),
@@ -68,7 +71,11 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
                         color: Color(0xFF0F5132), // Dark green
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
+                      child: const Icon(
+                        Icons.auto_awesome,
+                        color: Colors.white,
+                        size: 28,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Consumer<GameState>(
@@ -82,13 +89,16 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textBrown.withValues(alpha: 0.8),
+                                color: AppColors.textBrown.withValues(
+                                  alpha: 0.8,
+                                ),
                                 letterSpacing: 1.2,
                               ),
                             ),
                             Text(
                               '${unlocked.length} de ${GameState.allCards.length} descubiertos',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
                                     color: AppColors.textDark,
                                     fontSize: 18,
                                   ),
@@ -142,7 +152,10 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
                       childAspectRatio: 0.55,
-                      children: _showAnimals ? _buildDynamicCards(unlocked) : _buildPlantCards(),
+                      children: _buildDynamicCards(
+                        unlocked,
+                        isAnimal: _showAnimals,
+                      ),
                     );
                   },
                 ),
@@ -154,7 +167,12 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
     );
   }
 
-  Widget _buildFilterTab(String label, IconData icon, bool isActive, VoidCallback onTap) {
+  Widget _buildFilterTab(
+    String label,
+    IconData icon,
+    bool isActive,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -171,19 +189,23 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
                   BoxShadow(
                     color: const Color(0xFF0F5132).withValues(alpha: 0.5),
                     offset: const Offset(0, 4),
-                  )
+                  ),
                 ]
               : [
                   BoxShadow(
                     color: Colors.grey.shade300,
                     offset: const Offset(0, 4),
-                  )
+                  ),
                 ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isActive ? const Color(0xFF0F5132) : AppColors.textDark, size: 20),
+            Icon(
+              icon,
+              color: isActive ? const Color(0xFF0F5132) : AppColors.textDark,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             Text(
               label,
@@ -199,8 +221,15 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
     );
   }
 
-  List<Widget> _buildDynamicCards(List<int> unlockedIds) {
-    return GameState.allCards.map((cardData) {
+  List<Widget> _buildDynamicCards(
+    List<int> unlockedIds, {
+    required bool isAnimal,
+  }) {
+    final filteredCards = GameState.allCards
+        .where((c) => c.isAnimal == isAnimal)
+        .toList();
+
+    return filteredCards.map((cardData) {
       if (unlockedIds.contains(cardData.id)) {
         return EncyclopediaCard(
           title: cardData.title,
@@ -209,8 +238,12 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
           number: cardData.number,
           typeIcon: cardData.typeIcon,
           themeColor: cardData.themeColor,
-          tags: [
-            CardTag(label: 'Descubierto', bgColor: const Color(0xFFD6EAF8), textColor: const Color(0xFF2980B9)),
+          tags: const [
+            CardTag(
+              label: 'Descubierto',
+              bgColor: Color(0xFFD6EAF8),
+              textColor: Color(0xFF2980B9),
+            ),
           ],
         );
       } else {
@@ -219,21 +252,15 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
     }).toList();
   }
 
-  List<Widget> _buildPlantCards() {
-    return [
-      const LockedEncyclopediaCard(),
-      const LockedEncyclopediaCard(),
-      const LockedEncyclopediaCard(),
-      const LockedEncyclopediaCard(),
-    ];
-  }
-
   Widget _buildCustomAppBar(BuildContext context) {
     return Container(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 8, left: 16, right: 16, bottom: 8),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundLight,
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 8,
+        left: 16,
+        right: 16,
+        bottom: 8,
       ),
+      decoration: BoxDecoration(color: AppColors.backgroundLight),
       child: Row(
         children: [
           Container(
@@ -248,9 +275,9 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
           Text(
             'EcoQuiz',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.studentBorder,
-                  fontWeight: FontWeight.w900,
-                ),
+              color: AppColors.studentBorder,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const Spacer(),
           Container(
@@ -260,7 +287,10 @@ class _StudentJournalScreenState extends State<StudentJournalScreen> {
               border: Border.all(color: Colors.grey.shade300),
             ),
             child: IconButton(
-              icon: const Icon(Icons.settings_outlined, color: AppColors.studentBorder),
+              icon: const Icon(
+                Icons.settings_outlined,
+                color: AppColors.studentBorder,
+              ),
               onPressed: () => SettingsBottomSheet.show(context),
             ),
           ),
