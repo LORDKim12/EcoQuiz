@@ -30,6 +30,36 @@ class _TeacherQuestionManagementScreenState
   @override
   void initState() {
     super.initState();
+    // Cargar datos existentes si estamos editando un nivel
+    if (widget.initialLevelId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final gameState = context.read<GameState>();
+        final level = gameState.levels.firstWhere((l) => l.id == widget.initialLevelId, 
+            orElse: () => throw Exception('Nivel no encontrado'));
+        
+        setState(() {
+          _levelNameController.text = level.title;
+          _selectedBackgroundPath = level.backgroundImagePath;
+          
+          if (level.questions.isNotEmpty) {
+            _questions.clear();
+            for (final q in level.questions) {
+              final formData = _QuestionFormData();
+              formData.questionController.text = q.questionText;
+              
+              for (int i = 0; i < q.options.length && i < 3; i++) {
+                formData.optionControllers[i].text = q.options[i];
+              }
+              
+              formData.correctIndex = q.correctOptionIndex;
+              formData.hintController.text = q.hint;
+              formData.funFactController.text = q.funFact;
+              _questions.add(formData);
+            }
+          }
+        });
+      });
+    }
   }
 
   void _addQuestion() {

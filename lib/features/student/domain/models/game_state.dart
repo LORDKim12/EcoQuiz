@@ -1,6 +1,6 @@
-
 import 'dart:math';
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -238,6 +238,83 @@ class GameState extends ChangeNotifier {
   int _hearts = 5;
   int get hearts => _hearts;
 
+  Timer? _heartRegenTimer;
+  DateTime? _nextHeartRegenTime;
+
+  int get secondsUntilNextHeart {
+    if (_hearts >= 5 || _nextHeartRegenTime == null) return 0;
+    final diff = _nextHeartRegenTime!.difference(DateTime.now()).inSeconds;
+    return diff > 0 ? diff : 0;
+  }
+
+  void _syncHeartsToSupabase() {
+    if (_studentId == null) return;
+    try {
+      Supabase.instance.client.from('profiles').update({'hearts': _hearts}).eq('id', _studentId!);
+    } catch (_) {}
+  }
+
+  void _checkHeartRegenOffline() {
+    if (_hearts >= 5) {
+      _nextHeartRegenTime = null;
+      _prefs?.remove('next_heart_regen_time');
+      return;
+    }
+
+    if (_nextHeartRegenTime == null) {
+      _startHeartRegenTimer();
+      return;
+    }
+
+    final now = DateTime.now();
+    if (now.isAfter(_nextHeartRegenTime!)) {
+      final diff = now.difference(_nextHeartRegenTime!);
+      final periodsPassed = 1 + (diff.inMinutes ~/ 5);
+      
+      _hearts += periodsPassed;
+      if (_hearts >= 5) {
+        _hearts = 5;
+        _nextHeartRegenTime = null;
+        _prefs?.remove('next_heart_regen_time');
+      } else {
+        final remainderSeconds = (diff.inSeconds % 300);
+        _nextHeartRegenTime = now.add(Duration(seconds: 300 - remainderSeconds));
+        _prefs?.setString('next_heart_regen_time', _nextHeartRegenTime!.toIso8601String());
+        _startHeartRegenTimer();
+      }
+      notifyListeners();
+      _syncHeartsToSupabase();
+    } else {
+      _startHeartRegenTimer();
+    }
+  }
+
+  void _startHeartRegenTimer() {
+    _heartRegenTimer?.cancel();
+    if (_nextHeartRegenTime == null) {
+      _nextHeartRegenTime = DateTime.now().add(const Duration(minutes: 5));
+      _prefs?.setString('next_heart_regen_time', _nextHeartRegenTime!.toIso8601String());
+    }
+    
+    _heartRegenTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final now = DateTime.now();
+      if (_nextHeartRegenTime != null && now.isAfter(_nextHeartRegenTime!)) {
+        _hearts += 1;
+        if (_hearts >= 5) {
+          _hearts = 5;
+          _nextHeartRegenTime = null;
+          _prefs?.remove('next_heart_regen_time');
+          timer.cancel();
+        } else {
+          _nextHeartRegenTime = DateTime.now().add(const Duration(minutes: 5));
+          _prefs?.setString('next_heart_regen_time', _nextHeartRegenTime!.toIso8601String());
+        }
+        _syncHeartsToSupabase();
+      }
+      notifyListeners(); // Refresh UI to update the countdown
+    });
+  }
+
   int _xp = 0;
   int get xp => _xp;
 
@@ -354,10 +431,41 @@ class GameState extends ChangeNotifier {
     if (levelsJson != null) {
       try {
         final List<dynamic> decoded = jsonDecode(levelsJson);
-        _levels = decoded.map((e) => LevelData.fromJson(e)).toList();
+        final loadedLevels = decoded.map((e) => LevelData.fromJson(e)).toList();
+        if (loadedLevels.length >= 30) {
+          _levels = loadedLevels;
+        } else {
+          // Caché antiguo (menos de 30 niveles), sobrescribir con los nuevos 30
+          _saveLevels();
+        }
       } catch (e) {
         debugPrint('Error decoding levels from prefs: $e');
       }
+    } else {
+      _saveLevels(); // Guardar los 30 niveles iniciales
+    }
+
+    // Cargar tiempo de recarga de corazones
+    final String? regenTimeStr = _prefs?.getString('next_heart_regen_time');
+    if (regenTimeStr != null) {
+      _nextHeartRegenTime = DateTime.tryParse(regenTimeStr);
+      _checkHeartRegenOffline();
+    } else if (_hearts < 5) {
+      _startHeartRegenTimer();
+    }
+
+    // Asegurar que si un nivel ya fue completado antes, el siguiente esté desbloqueado
+    bool levelsModified = false;
+    for (int i = 0; i < _levels.length - 1; i++) {
+      final currentLevel = _levels[i];
+      final stars = _levelStars[currentLevel.id.toString()] ?? 0;
+      if (stars > 0 && !_levels[i + 1].isUnlocked) {
+        _levels[i + 1] = _levels[i + 1].copyWith(isUnlocked: true);
+        levelsModified = true;
+      }
+    }
+    if (levelsModified) {
+      _saveLevels();
     }
 
     notifyListeners();
@@ -507,10 +615,38 @@ class GameState extends ChangeNotifier {
     final index = _levels.indexWhere((l) => l.id == levelId);
     if (index != -1) {
       final level = _levels[index];
-      final updatedQuestions = List<QuizQuestion>.from(level.questions)..addAll(newQuestions);
-      _levels[index] = level.copyWith(questions: updatedQuestions);
+      _levels[index] = level.copyWith(questions: newQuestions);
       _saveLevels();
       notifyListeners();
+      
+      // Persistir a Supabase
+      _persistQuestionsToSupabase(levelId, newQuestions);
+    }
+  }
+
+  Future<void> _persistQuestionsToSupabase(int levelId, List<QuizQuestion> questions) async {
+    try {
+      final client = Supabase.instance.client;
+      // Primero, eliminar preguntas anteriores de este nivel
+      await client.from('questions').delete().eq('level_id', levelId);
+      
+      // Si no hay nuevas, terminamos
+      if (questions.isEmpty) return;
+      
+      // Insertar las nuevas
+      final rows = questions.map((q) => {
+        'level_id': levelId,
+        'question_text': q.questionText,
+        'image_url': q.imageAssetPath,
+        'options': q.options,
+        'correct_index': q.correctOptionIndex,
+        'hint': q.hint,
+        'fun_fact': q.funFact,
+      }).toList();
+      
+      await client.from('questions').insert(rows);
+    } catch (e) {
+      debugPrint('Error saving questions to Supabase: $e');
     }
   }
 
@@ -563,8 +699,24 @@ class GameState extends ChangeNotifier {
       _recalculateTotalStars();
     }
     
+    // Desbloquear el siguiente nivel automáticamente
+    if (starsEarned > 0) {
+      _unlockNextLevel(levelId);
+    }
+    
     // Sincronizar siempre con Supabase (fire-and-forget) para registrar actividad
     _syncStarsToSupabase(levelId, starsEarned);
+  }
+
+  void _unlockNextLevel(int currentLevelId) {
+    final index = _levels.indexWhere((l) => l.id == currentLevelId);
+    if (index != -1 && index + 1 < _levels.length) {
+      final nextLevel = _levels[index + 1];
+      if (!nextLevel.isUnlocked) {
+        _levels[index + 1] = nextLevel.copyWith(isUnlocked: true);
+        _saveLevels();
+      }
+    }
   }
 
   Future<void> _syncStarsToSupabase(int levelId, int starsEarned) async {
@@ -637,12 +789,20 @@ class GameState extends ChangeNotifier {
   void deductHeart() {
     if (_hearts > 0) {
       _hearts -= 1;
+      if (_hearts == 4) {
+        _startHeartRegenTimer();
+      }
+      _syncHeartsToSupabase();
       notifyListeners();
     }
   }
 
   void restoreHearts() {
     _hearts = 5;
+    _heartRegenTimer?.cancel();
+    _nextHeartRegenTime = null;
+    _prefs?.remove('next_heart_regen_time');
+    _syncHeartsToSupabase();
     notifyListeners();
   }
 
@@ -839,6 +999,32 @@ class GameState extends ChangeNotifier {
         progressMap[row['level_id'].toString()] = row['stars_earned'] as int;
       }
 
+      // ── Mapeo de Preguntas desde Supabase ───────────────────────────
+      final questionsResult = await client.from('questions').select();
+      final questionsByLevel = <int, List<QuizQuestion>>{};
+
+      for (final row in questionsResult) {
+        final levelId = row['level_id'] as int;
+        
+        // Supabase guarda options como JSONB, convertimos a List<String>
+        final optionsRaw = row['options'];
+        final List<String> options = optionsRaw is List
+            ? optionsRaw.map((e) => e.toString()).toList()
+            : <String>[];
+
+        final q = QuizQuestion(
+          questionText: row['question_text'] ?? '',
+          imageAssetPath: row['image_url'] ?? '',
+          options: options,
+          correctOptionIndex: row['correct_index'] ?? 0,
+          hint: row['hint'] ?? '',
+          funFact: row['fun_fact'] ?? '',
+        );
+
+        questionsByLevel.putIfAbsent(levelId, () => []);
+        questionsByLevel[levelId]!.add(q);
+      }
+
       if (levelsResult.isNotEmpty) {
         final syncedLevels = <LevelData>[];
         int unlockedCount = 0;
@@ -882,12 +1068,16 @@ class GameState extends ChangeNotifier {
               .toList();
 
           final local = localLevelsMap[id];
+          
+          // Priorizamos las preguntas de Supabase, si no hay, usamos las locales/genéricas
+          final finalQuestions = questionsByLevel[id] ?? local?.questions ?? [];
+
           syncedLevels.add(LevelData(
             id: id,
             title: title,
             biome: biome,
             isUnlocked: isUnlocked,
-            questions: local?.questions ?? [],
+            questions: finalQuestions,
             backgroundPath: local?.backgroundPath,
             backgroundImagePath: local?.backgroundImagePath ?? _defaultBiomeImage(biome),
             stops: stops,
@@ -899,10 +1089,51 @@ class GameState extends ChangeNotifier {
         _saveLevels();
         _levelStars = progressMap;
       } else {
-        // La base de datos está vacía, no agregamos niveles predeterminados.
-        _levels = [];
-        _saveLevels();
+        // Usar los niveles locales por defecto si la BD está vacía
         _levelStars = progressMap;
+        
+        // La base de datos está vacía en 'levels', así que subimos nuestros niveles locales
+        try {
+          final levelsToInsert = _levels.map((l) => {
+            'id': l.id,
+            'title': l.title,
+            'biome': l.biome,
+            'order_index': l.id,
+            'is_active': true,
+          }).toList();
+          
+          await client.from('levels').upsert(levelsToInsert);
+        } catch (e) {
+          debugPrint('Error uploading default levels to Supabase: $e');
+        }
+
+        // Recalcular desbloqueos locales según progressMap y mapear preguntas de Supabase
+        bool levelsModified = false;
+        for (int i = 0; i < _levels.length; i++) {
+          final currentLevel = _levels[i];
+          final stars = _levelStars[currentLevel.id.toString()] ?? 0;
+          
+          bool shouldUpdate = false;
+          bool newUnlocked = currentLevel.isUnlocked;
+          List<QuizQuestion> newQuestions = currentLevel.questions;
+
+          if (i < _levels.length - 1 && stars > 0 && !_levels[i + 1].isUnlocked) {
+            _levels[i + 1] = _levels[i + 1].copyWith(isUnlocked: true);
+            levelsModified = true;
+          }
+
+          // Asignar preguntas de Supabase si existen
+          if (questionsByLevel.containsKey(currentLevel.id)) {
+            newQuestions = questionsByLevel[currentLevel.id]!;
+            shouldUpdate = true;
+          }
+
+          if (shouldUpdate) {
+            _levels[i] = currentLevel.copyWith(questions: newQuestions);
+            levelsModified = true;
+          }
+        }
+        if (levelsModified) _saveLevels();
       }
 
       // 2. Cargar recompensas del grupo del alumno

@@ -180,24 +180,26 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
       );
     }
 
-    // Dimensiones del mapa
-    final screenWidth = MediaQuery.of(context).size.width;
-    final mapHeight = max(
-      MediaQuery.of(context).size.height * 1.3,
-      (nodeCount * 160.0) + 300,
-    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Dimensiones del mapa
+        final screenWidth = constraints.maxWidth;
+        final mapHeight = max(
+          MediaQuery.of(context).size.height * 1.3,
+          (nodeCount * 160.0) + 300,
+        );
 
-    // Generar posiciones de nodos en curva S de abajo hacia arriba
-    final positions = _generateCurvePositions(nodeCount, screenWidth, mapHeight);
+        // Generar posiciones de nodos en curva S de abajo hacia arriba
+        final positions = _generateCurvePositions(nodeCount, screenWidth, mapHeight);
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      reverse: true, // Empezar desde abajo (donde inicia el camino)
-      child: SizedBox(
-        width: screenWidth,
-        height: mapHeight,
-        child: Stack(
-          children: [
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          reverse: true, // Empezar desde abajo (donde inicia el camino)
+          child: SizedBox(
+            width: screenWidth,
+            height: mapHeight,
+            child: Stack(
+              children: [
             // Fondo del bioma
             Positioned.fill(
               child: Image.asset(
@@ -351,10 +353,12 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             }),
 
             // Mascota ajolote — junto al nodo actual
-            ..._buildMascot(stops, positions),
+            ..._buildMascot(stops, positions, screenWidth),
           ],
         ),
       ),
+    );
+      },
     );
   }
 
@@ -383,13 +387,13 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   }
 
   /// Construye la mascota ajolote posicionada junto al nodo "actual"
-  List<Widget> _buildMascot(List<_StopInfo> stops, List<Offset> positions) {
+  List<Widget> _buildMascot(List<_StopInfo> stops, List<Offset> positions, double screenWidth) {
     final currentIndex =
         stops.indexWhere((s) => s.status == _StopStatus.current);
     if (currentIndex < 0 || currentIndex >= positions.length) return [];
 
     final pos = positions[currentIndex];
-    final mascotX = pos.dx > MediaQuery.of(context).size.width / 2
+    final mascotX = pos.dx > screenWidth / 2
         ? pos.dx - 110
         : pos.dx + 60;
 
@@ -599,6 +603,15 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             Consumer<GameState>(
               builder: (context, gameState, child) {
                 final heartsCount = gameState.hearts;
+                final secondsUntilNext = gameState.secondsUntilNextHeart;
+                
+                String timerText = '';
+                if (heartsCount < 5 && secondsUntilNext > 0) {
+                  final m = (secondsUntilNext ~/ 60).toString().padLeft(2, '0');
+                  final s = (secondsUntilNext % 60).toString().padLeft(2, '0');
+                  timerText = '$m:$s';
+                }
+
                 return Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -614,11 +627,13 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                           color: Colors.white, size: 18),
                       const SizedBox(width: 4),
                       Text(
-                        '$heartsCount',
+                        heartsCount < 5 && timerText.isNotEmpty 
+                            ? '$heartsCount ($timerText)'
+                            : '$heartsCount',
                         style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16),
+                            fontSize: 14),
                       ),
                     ],
                   ),
