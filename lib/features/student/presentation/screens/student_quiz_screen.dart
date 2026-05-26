@@ -415,10 +415,38 @@ class _StudentQuizScreenState extends State<StudentQuizScreen>
         ),
         centerTitle: true,
         actions: [
+          // Contador de vidas
+          Consumer<GameState>(
+            builder: (context, gameState, child) {
+              return Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE74C3C).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE74C3C), width: 2),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.favorite, color: Color(0xFFE74C3C), size: 18),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${gameState.hearts}',
+                      style: const TextStyle(
+                        color: Color(0xFFE74C3C),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           // Temporizador visual
           Container(
             margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: timerColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),

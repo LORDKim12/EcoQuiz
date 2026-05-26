@@ -247,10 +247,11 @@ class GameState extends ChangeNotifier {
     return diff > 0 ? diff : 0;
   }
 
-  void _syncHeartsToSupabase() {
+  Future<void> _syncHeartsToSupabase() async {
     if (_studentId == null) return;
     try {
-      Supabase.instance.client.from('profiles').update({'hearts': _hearts}).eq('id', _studentId!);
+      _prefs?.setInt('local_hearts', _hearts);
+      await Supabase.instance.client.from('profiles').update({'hearts': _hearts}).eq('id', _studentId!);
     } catch (_) {}
   }
 
@@ -443,6 +444,12 @@ class GameState extends ChangeNotifier {
       }
     } else {
       _saveLevels(); // Guardar los 30 niveles iniciales
+    }
+
+    // Cargar corazones locales
+    final localHearts = _prefs?.getInt('local_hearts');
+    if (localHearts != null) {
+      _hearts = localHearts;
     }
 
     // Cargar tiempo de recarga de corazones
@@ -1043,34 +1050,17 @@ class GameState extends ChangeNotifier {
           final title = json['title'] as String? ?? 'Nivel $id';
           final biome = rawBiome ?? title;
 
-          // Consultar expedition_stops filtrando por level_id y ordenado por order_index
-          final stopsResult = await client
-              .from('expedition_stops')
-              .select()
-              .eq('level_id', id)
-              .order('order_index');
+          // No necesitamos consultar expedition_stops porque usamos los niveles planos (0-29)
+          final stops = <ExpeditionStop>[];
 
-          final stops = stopsResult.map((s) => ExpeditionStop(
-                id: s['id'] as int,
-                title: s['title'] as String,
-              )).toList();
-
-          // Consultar student_progress para obtener paradas completadas (stop_id != null)
-          final completedStopsResult = await client
-              .from('student_progress')
-              .select('stop_id')
-              .eq('student_id', studentId)
-              .eq('level_id', id)
-              .not('stop_id', 'is', null);
-
-          final completedStops = completedStopsResult
-              .map((p) => p['stop_id'] as int)
-              .toList();
+          // stop_id no existe en la base de datos (niveles planos 0-29), por lo que siempre está vacío
+          final completedStops = <int>[];
 
           final local = localLevelsMap[id];
           
-          // Priorizamos las preguntas de Supabase, si no hay, usamos las locales/genéricas
-          final finalQuestions = questionsByLevel[id] ?? local?.questions ?? [];
+          // Priorizamos las preguntas exactas del nodo, si no, las del bioma (id ~/ 5), si no, usamos las locales/genéricas
+          final biomeIndex = id ~/ 5;
+          final finalQuestions = questionsByLevel[id] ?? questionsByLevel[biomeIndex] ?? local?.questions ?? [];
 
           syncedLevels.add(LevelData(
             id: id,
@@ -1122,9 +1112,13 @@ class GameState extends ChangeNotifier {
             levelsModified = true;
           }
 
-          // Asignar preguntas de Supabase si existen
+          // Asignar preguntas de Supabase si existen (exacta o de su bioma)
+          final biomeIndex = currentLevel.id ~/ 5;
           if (questionsByLevel.containsKey(currentLevel.id)) {
             newQuestions = questionsByLevel[currentLevel.id]!;
+            shouldUpdate = true;
+          } else if (questionsByLevel.containsKey(biomeIndex)) {
+            newQuestions = questionsByLevel[biomeIndex]!;
             shouldUpdate = true;
           }
 
@@ -1208,6 +1202,15 @@ class GameState extends ChangeNotifier {
 
       if (profileResult != null) {
         _hearts = profileResult['hearts'] as int? ?? 5;
+        _prefs?.setInt('local_hearts', _hearts);
+        
+        if (_hearts >= 5) {
+          _heartRegenTimer?.cancel();
+          _nextHeartRegenTime = null;
+          _prefs?.remove('next_heart_regen_time');
+        } else if (_nextHeartRegenTime == null) {
+          _startHeartRegenTimer();
+        }
       }
 
       // 5. Recalcular estrellas totales

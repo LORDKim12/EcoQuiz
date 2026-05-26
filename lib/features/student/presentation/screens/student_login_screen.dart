@@ -163,6 +163,16 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
                         const SizedBox(height: 8),
                         TextField(
                           controller: _classCodeController,
+                          textCapitalization: TextCapitalization.characters,
+                          onChanged: (value) {
+                            final uppercaseValue = value.toUpperCase();
+                            if (_classCodeController.text != uppercaseValue) {
+                              _classCodeController.value = _classCodeController.value.copyWith(
+                                text: uppercaseValue,
+                                selection: TextSelection.collapsed(offset: uppercaseValue.length),
+                              );
+                            }
+                          },
                           decoration: InputDecoration(
                             hintText: 'Ej. ECO-4B',
                             hintStyle: TextStyle(color: Colors.grey.shade400),

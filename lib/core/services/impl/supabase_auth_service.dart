@@ -57,29 +57,7 @@ class SupabaseAuthService implements AuthService {
       }
     }
 
-    // 3. Crear nuevo perfil de alumno
-    final newProfile = await _client.from('profiles').insert({
-      'name': trimmedName,
-      'role': 'student',
-      'hearts': 5,
-    }).select().single();
-
-    final studentId = newProfile['id'];
-
-    // 4. Vincular al grupo
-    await _client.from('group_members').insert({
-      'group_id': groupId,
-      'student_id': studentId,
-    });
-
-    _currentUser = UserModel(
-      id: studentId,
-      name: trimmedName,
-      role: UserRole.student,
-      createdAt: DateTime.now(),
-    );
-
-    return _currentUser!;
+    throw Exception('No existe el alumno "$trimmedName" en el grupo ${groupCode.toUpperCase()}');
   }
 
   // ── Login de Maestro ──────────────────────────────────────────────
