@@ -18,8 +18,8 @@ class StudentMapScreen extends StatefulWidget {
 }
 
 class _StudentMapScreenState extends State<StudentMapScreen> {
-  int _currentExpeditionIndex = 0;
-  final PageController _expeditionPageController = PageController();
+  int _currentBiomeIndex = 0;
+  final PageController _biomePageController = PageController();
 
   String _safeBiomeName(String raw) {
     if (raw.trim().startsWith('{')) {
@@ -53,8 +53,19 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
 
   @override
   void dispose() {
-    _expeditionPageController.dispose();
+    _biomePageController.dispose();
     super.dispose();
+  }
+
+  /// Agrupa los niveles por bioma, manteniendo el orden.
+  Map<String, List<LevelData>> _groupByBiome(List<LevelData> levels) {
+    final grouped = <String, List<LevelData>>{};
+    for (final level in levels) {
+      final biomeName = _safeBiomeName(level.biome);
+      grouped.putIfAbsent(biomeName, () => []);
+      grouped[biomeName]!.add(level);
+    }
+    return grouped;
   }
 
   @override
@@ -67,32 +78,41 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
       ),
       body: Consumer<GameState>(
         builder: (context, gameState, child) {
-          final levels = gameState.levels;
-          if (levels.isEmpty) {
+          final allLevels = gameState.levels;
+          if (allLevels.isEmpty) {
             return const Center(child: Text('No hay expediciones'));
+          }
+
+          final biomeGroups = _groupByBiome(allLevels);
+          final biomeNames = biomeGroups.keys.toList();
+
+          // Asegurar que el índice no se pase
+          if (_currentBiomeIndex >= biomeNames.length) {
+            _currentBiomeIndex = 0;
           }
 
           return Stack(
             children: [
-              // Main map with PageView for expedition switching
+              // Mapa principal con PageView por BIOMA
               PageView.builder(
-                controller: _expeditionPageController,
-                itemCount: levels.length,
+                controller: _biomePageController,
+                itemCount: biomeNames.length,
                 onPageChanged: (index) {
-                  setState(() => _currentExpeditionIndex = index);
+                  setState(() => _currentBiomeIndex = index);
                 },
                 itemBuilder: (context, index) {
-                  final level = levels[index];
-                  return _buildExpeditionMap(context, level, gameState);
+                  final biomeName = biomeNames[index];
+                  final biomeLevels = biomeGroups[biomeName]!;
+                  return _buildBiomeMap(context, biomeName, biomeLevels, gameState);
                 },
               ),
 
-              // Bottom expedition selector
+              // Selector inferior de biomas
               Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
-                child: _buildExpeditionSelector(levels),
+                child: _buildBiomeSelector(biomeNames, biomeGroups),
               ),
             ],
           );
@@ -102,71 +122,73 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // Expedition Map (InteractiveViewer + Stack)
+  // Mapa de un bioma con TODOS sus niveles como nodos verticales
   // ═══════════════════════════════════════════════════════════════════
-  Widget _buildExpeditionMap(
-      BuildContext context, LevelData level, GameState gameState) {
-    final safeBiome = _safeBiomeName(level.biome);
-    final biomeImage =
-        level.backgroundImagePath ?? _getBiomeImage(safeBiome);
+  Widget _buildBiomeMap(
+    BuildContext context,
+    String biomeName,
+    List<LevelData> biomeLevels,
+    GameState gameState,
+  ) {
+    final biomeImage = _getBiomeImage(biomeName);
+    final int nodeCount = biomeLevels.length;
 
-    // Determine stops: if level has explicit stops, use them; otherwise treat as single stop
-    final int stopCount;
-    final List<_StopInfo> stops;
-
-    if (level.hasStops) {
-      stopCount = level.stops.length;
-      stops = List.generate(stopCount, (i) {
-        final stop = level.stops[i];
-        final isCompleted = level.completedStops.contains(stop.id);
-        final isCurrent = !isCompleted && i == level.currentStopIndex;
-        return _StopInfo(
-          index: i,
-          title: stop.title,
-          status: isCompleted
-              ? _StopStatus.completed
-              : isCurrent
-                  ? _StopStatus.current
-                  : _StopStatus.locked,
-          stars: isCompleted ? (gameState.levelStars['${level.id}_$i'] ?? 1) : 0,
-          questions: stop.questions,
-        );
-      });
-    } else {
-      // Single-stop legacy level
-      stopCount = 1;
+    // Crear lista de nodos (stops) a partir de los niveles del bioma
+    final stops = <_StopInfo>[];
+    for (int i = 0; i < biomeLevels.length; i++) {
+      final level = biomeLevels[i];
       final stars = gameState.levelStars[level.id.toString()] ?? 0;
       final isCompleted = level.isUnlocked && stars > 0;
 
-      // Buscar el nivel más alto desbloqueado globalmente
-      final highestUnlockedIndex =
-          gameState.levels.lastIndexWhere((l) => l.isUnlocked);
-      final isCurrent = highestUnlockedIndex >= 0 &&
-          gameState.levels[highestUnlockedIndex].id == level.id &&
-          stars == 0;
+      // El nivel actual es el primero desbloqueado que no tiene estrellas
+      final isCurrent = level.isUnlocked && stars == 0;
 
-      stops = [
-        _StopInfo(
-          index: 0,
-          title: safeBiome,
-          status: isCompleted
-              ? _StopStatus.completed
-              : (level.isUnlocked && (isCurrent || stars == 0))
-                  ? _StopStatus.current
-                  : _StopStatus.locked,
-          stars: stars,
-          questions: QuestionBank.getForBiome(level.id, gameState),
-        ),
-      ];
+      // Obtener preguntas: primero del level, luego del QuestionBank
+      List<QuizQuestion> questions;
+      if (level.hasStops && level.stops.isNotEmpty) {
+        // Si tiene stops configurados, usar todas las preguntas de los stops
+        questions = level.stops.expand((s) => s.questions).toList();
+      } else if (level.questions.isNotEmpty) {
+        questions = level.questions;
+      } else {
+        questions = QuestionBank.getForBiome(level.id, gameState);
+      }
+
+      stops.add(_StopInfo(
+        index: i,
+        title: level.title,
+        levelId: level.id,
+        status: isCompleted
+            ? _StopStatus.completed
+            : isCurrent
+                ? _StopStatus.current
+                : _StopStatus.locked,
+        stars: stars,
+        questions: questions,
+      ));
     }
 
-    // Map dimensions
-    final screenWidth = MediaQuery.of(context).size.width;
-    final mapHeight = max(MediaQuery.of(context).size.height * 1.3,
-        (stopCount * 160.0) + 300);
+    // Asegurar que al menos el primer nivel esté desbloqueado
+    if (stops.isNotEmpty && !stops.any((s) => s.status != _StopStatus.locked)) {
+      stops[0] = _StopInfo(
+        index: 0,
+        title: stops[0].title,
+        levelId: stops[0].levelId,
+        status: _StopStatus.current,
+        stars: 0,
+        questions: stops[0].questions,
+      );
+    }
 
-    // Generate node positions along a sinusoidal curve
-    final positions = _generateCurvePositions(stopCount, screenWidth, mapHeight);
+    // Dimensiones del mapa
+    final screenWidth = MediaQuery.of(context).size.width;
+    final mapHeight = max(
+      MediaQuery.of(context).size.height * 1.3,
+      (nodeCount * 160.0) + 300,
+    );
+
+    // Generar posiciones de nodos en curva S de abajo hacia arriba
+    final positions = _generateCurvePositions(nodeCount, screenWidth, mapHeight);
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -176,12 +198,12 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         height: mapHeight,
         child: Stack(
           children: [
-            // Background biome image
+            // Fondo del bioma
             Positioned.fill(
               child: Image.asset(
                 biomeImage,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
+                errorBuilder: (_, __, _) => Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
@@ -193,14 +215,14 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               ),
             ),
 
-            // Semi-transparent overlay for readability
+            // Overlay semi-transparente para legibilidad
             Positioned.fill(
               child: Container(
                 color: Colors.black.withValues(alpha: 0.15),
               ),
             ),
 
-            // Dotted path (CustomPaint)
+            // Camino punteado entre nodos
             if (positions.length > 1)
               Positioned.fill(
                 child: CustomPaint(
@@ -208,9 +230,9 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                 ),
               ),
 
-            // Expedition title (glassmorphism)
+            // Título del bioma (glassmorphism) — abajo porque el scroll es reverse
             Positioned(
-              bottom: 120, // Título abajo para que se vea al cargar el mapa invertido
+              bottom: 120,
               left: 0,
               right: 0,
               child: Center(
@@ -225,7 +247,8 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3), width: 1.5),
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 1.5),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -235,7 +258,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
-                              safeBiome.toUpperCase(),
+                              biomeName.toUpperCase(),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -256,7 +279,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               ),
             ),
 
-            // Stop nodes
+            // Nodos de niveles
             ...List.generate(stops.length, (i) {
               final pos = positions[i];
               final stop = stops[i];
@@ -266,7 +289,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Stop title label
+                    // Etiqueta del nivel
                     if (stop.status != _StopStatus.locked)
                       Container(
                         margin: const EdgeInsets.only(bottom: 8),
@@ -288,7 +311,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                           ),
                         ),
                       ),
-                    // Node button
+                    // Botón del nodo
                     _StopNodeWidget(
                       stopNumber: i + 1,
                       status: stop.status,
@@ -299,7 +322,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: const Text(
-                                  'Esta parada aún no tiene preguntas',
+                                  'Este nivel aún no tiene preguntas',
                                   style:
                                       TextStyle(fontWeight: FontWeight.bold)),
                               backgroundColor: const Color(0xFFF39C12),
@@ -315,7 +338,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                           MaterialPageRoute(
                             builder: (_) => StudentQuizScreen(
                               questions: stop.questions,
-                              levelIndex: level.id,
+                              levelIndex: stop.levelId,
                               isTeacher: widget.isTeacher,
                             ),
                           ),
@@ -327,7 +350,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               );
             }),
 
-            // Mascota (ajolote) — positioned next to current stop
+            // Mascota ajolote — junto al nodo actual
             ..._buildMascot(stops, positions),
           ],
         ),
@@ -344,15 +367,15 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
     }
 
     final positions = <Offset>[];
-    final amplitude = width * 0.22; // Amplitud de la S
+    final amplitude = width * 0.22;
     final centerX = width / 2;
     final topPadding = 200.0;
     final bottomPadding = 200.0;
     final usableHeight = mapHeight - topPadding - bottomPadding;
 
     for (int i = 0; i < count; i++) {
-      final t = i / (count - 1); // 0..1
-      final y = mapHeight - bottomPadding - (usableHeight * t); // Bottom to top
+      final t = i / (count - 1);
+      final y = mapHeight - bottomPadding - (usableHeight * t);
       final x = centerX + sin(t * pi * 2) * amplitude;
       positions.add(Offset(x.clamp(60, width - 60), y));
     }
@@ -366,7 +389,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
     if (currentIndex < 0 || currentIndex >= positions.length) return [];
 
     final pos = positions[currentIndex];
-    // Offset the mascot to the side of the node
     final mascotX = pos.dx > MediaQuery.of(context).size.width / 2
         ? pos.dx - 110
         : pos.dx + 60;
@@ -377,7 +399,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         top: pos.dy - 80,
         child: Column(
           children: [
-            // Speech bubble
+            // Burbuja de diálogo
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -402,7 +424,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               ),
             ),
             const SizedBox(height: 6),
-            // Axolotl mascot
+            // Ajolote mascota
             Container(
               width: 65,
               height: 65,
@@ -425,7 +447,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                 child: Image.asset(
                   'assets/images/eco_ajolote_mascot.png',
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) =>
+                  errorBuilder: (_, __, _) =>
                       Container(color: Colors.pink.shade200),
                 ),
               ),
@@ -437,9 +459,10 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // Bottom Expedition Selector
+  // Selector inferior de biomas
   // ═══════════════════════════════════════════════════════════════════
-  Widget _buildExpeditionSelector(List<LevelData> levels) {
+  Widget _buildBiomeSelector(
+      List<String> biomeNames, Map<String, List<LevelData>> biomeGroups) {
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
@@ -458,16 +481,17 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             ),
           ),
           child: SizedBox(
-            height: 60,
+            height: 70,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: levels.length,
+              itemCount: biomeNames.length,
               itemBuilder: (context, index) {
-                final level = levels[index];
-                final isActive = index == _currentExpeditionIndex;
+                final biomeName = biomeNames[index];
+                final isActive = index == _currentBiomeIndex;
+                final levelCount = biomeGroups[biomeName]?.length ?? 0;
                 return GestureDetector(
                   onTap: () {
-                    _expeditionPageController.animateToPage(
+                    _biomePageController.animateToPage(
                       index,
                       duration: const Duration(milliseconds: 400),
                       curve: Curves.easeInOut,
@@ -494,7 +518,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          level.isUnlocked ? Icons.explore : Icons.lock,
+                          Icons.explore,
                           color: isActive
                               ? Colors.white
                               : Colors.white.withValues(alpha: 0.6),
@@ -502,7 +526,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _safeBiomeName(level.biome),
+                          biomeName,
                           style: TextStyle(
                             color: isActive
                                 ? Colors.white
@@ -510,6 +534,14 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                             fontWeight:
                                 isActive ? FontWeight.w900 : FontWeight.w600,
                             fontSize: 11,
+                          ),
+                        ),
+                        Text(
+                          '$levelCount ${levelCount == 1 ? 'nivel' : 'niveles'}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -562,7 +594,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                 ),
           ),
           const Spacer(),
-          // Hearts Counter Pill
+          // Hearts Counter
           if (!widget.isTeacher)
             Consumer<GameState>(
               builder: (context, gameState, child) {
@@ -594,7 +626,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               },
             ),
           if (!widget.isTeacher) const SizedBox(width: 8),
-          // Star Counter Pill
+          // Star Counter
           if (!widget.isTeacher)
             Consumer<GameState>(
               builder: (context, gameState, child) {
@@ -632,7 +664,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Adventure Path Painter — draws a smooth dotted curve connecting the stops
+// Adventure Path Painter — dibuja una curva suave punteada entre los nodos
 // ═══════════════════════════════════════════════════════════════════════════════
 class _AdventurePathPainter extends CustomPainter {
   final List<Offset> positions;
@@ -649,7 +681,6 @@ class _AdventurePathPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    // Shadow paint
     final shadowPaint = Paint()
       ..color = Colors.black.withValues(alpha: 0.15)
       ..strokeWidth = 10
@@ -663,14 +694,11 @@ class _AdventurePathPainter extends CustomPainter {
     for (int i = 1; i < positions.length; i++) {
       final prev = positions[i - 1];
       final curr = positions[i];
-      // Control points for smooth curve
       final controlX = (prev.dx + curr.dx) / 2;
       path.quadraticBezierTo(controlX, prev.dy, curr.dx, curr.dy);
     }
 
-    // Draw shadow
     _drawDashedPath(canvas, path, shadowPaint, 14, 10);
-    // Draw dotted line
     _drawDashedPath(canvas, path, paint, 12, 8);
   }
 
@@ -692,13 +720,14 @@ class _AdventurePathPainter extends CustomPainter {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Stop Status
+// Stop Status & Info
 // ═══════════════════════════════════════════════════════════════════════════════
 enum _StopStatus { locked, current, completed }
 
 class _StopInfo {
   final int index;
   final String title;
+  final int levelId;
   final _StopStatus status;
   final int stars;
   final List<QuizQuestion> questions;
@@ -706,6 +735,7 @@ class _StopInfo {
   const _StopInfo({
     required this.index,
     required this.title,
+    required this.levelId,
     required this.status,
     required this.stars,
     required this.questions,
@@ -713,7 +743,7 @@ class _StopInfo {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Stop Node Widget — animated node with heartbeat effect for current stop
+// Stop Node Widget — nodo animado con heartbeat para el nodo actual
 // ═══════════════════════════════════════════════════════════════════════════════
 class _StopNodeWidget extends StatefulWidget {
   final int stopNumber;
@@ -767,7 +797,6 @@ class _StopNodeWidgetState extends State<_StopNodeWidget>
     final isLocked = widget.status == _StopStatus.locked;
     final isCompleted = widget.status == _StopStatus.completed;
 
-    // Colors based on state
     Color nodeColor;
     Color shadowColor;
     Color borderColor;
@@ -833,7 +862,7 @@ class _StopNodeWidgetState extends State<_StopNodeWidget>
               ),
             ),
 
-            // Main button with glassmorphism
+            // Main button
             Container(
               width: 72,
               height: 72,
@@ -903,7 +932,7 @@ class _StopNodeWidgetState extends State<_StopNodeWidget>
       ),
     );
 
-    // Heartbeat animation for current stop
+    // Heartbeat animation for current
     if (isCurrent) {
       return AnimatedBuilder(
         animation: _scaleAnimation,

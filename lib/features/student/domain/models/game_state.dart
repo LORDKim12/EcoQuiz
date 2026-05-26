@@ -251,6 +251,21 @@ class GameState extends ChangeNotifier {
   ];
   List<LevelData> get levels => _levels;
 
+  void renameLevel(int id, String newName) {
+    final index = _levels.indexWhere((l) => l.id == id);
+    if (index != -1) {
+      final l = _levels[index];
+      _levels[index] = LevelData(
+        id: l.id,
+        title: newName,
+        biome: l.biome,
+        isUnlocked: l.isUnlocked,
+        backgroundImagePath: l.backgroundImagePath,
+      );
+      notifyListeners();
+    }
+  }
+
   Map<String, int> _levelStars = {};
   Map<String, int> get levelStars => _levelStars;
 
