@@ -242,12 +242,47 @@ class GameState extends ChangeNotifier {
   int get xp => _xp;
 
   List<LevelData> _levels = [
+    // Ciudad
     LevelData(id: 0, title: 'Nivel 1', biome: 'Ciudad', isUnlocked: true, backgroundImagePath: 'assets/images/biome_city.png'),
-    LevelData(id: 1, title: 'Nivel 1', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
-    LevelData(id: 2, title: 'Nivel 1', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
-    LevelData(id: 3, title: 'Nivel 1', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
-    LevelData(id: 4, title: 'Nivel 1', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
-    LevelData(id: 5, title: 'Nivel 1', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
+    LevelData(id: 1, title: 'Nivel 2', biome: 'Ciudad', isUnlocked: false, backgroundImagePath: 'assets/images/biome_city.png'),
+    LevelData(id: 2, title: 'Nivel 3', biome: 'Ciudad', isUnlocked: false, backgroundImagePath: 'assets/images/biome_city.png'),
+    LevelData(id: 3, title: 'Nivel 4', biome: 'Ciudad', isUnlocked: false, backgroundImagePath: 'assets/images/biome_city.png'),
+    LevelData(id: 4, title: 'Nivel 5', biome: 'Ciudad', isUnlocked: false, backgroundImagePath: 'assets/images/biome_city.png'),
+    
+    // Manglar
+    LevelData(id: 5, title: 'Nivel 1', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
+    LevelData(id: 6, title: 'Nivel 2', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
+    LevelData(id: 7, title: 'Nivel 3', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
+    LevelData(id: 8, title: 'Nivel 4', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
+    LevelData(id: 9, title: 'Nivel 5', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
+
+    // Arrecife
+    LevelData(id: 10, title: 'Nivel 1', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
+    LevelData(id: 11, title: 'Nivel 2', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
+    LevelData(id: 12, title: 'Nivel 3', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
+    LevelData(id: 13, title: 'Nivel 4', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
+    LevelData(id: 14, title: 'Nivel 5', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
+
+    // Bosque
+    LevelData(id: 15, title: 'Nivel 1', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
+    LevelData(id: 16, title: 'Nivel 2', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
+    LevelData(id: 17, title: 'Nivel 3', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
+    LevelData(id: 18, title: 'Nivel 4', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
+    LevelData(id: 19, title: 'Nivel 5', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
+
+    // Selva
+    LevelData(id: 20, title: 'Nivel 1', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
+    LevelData(id: 21, title: 'Nivel 2', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
+    LevelData(id: 22, title: 'Nivel 3', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
+    LevelData(id: 23, title: 'Nivel 4', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
+    LevelData(id: 24, title: 'Nivel 5', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
+
+    // Desierto
+    LevelData(id: 25, title: 'Nivel 1', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
+    LevelData(id: 26, title: 'Nivel 2', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
+    LevelData(id: 27, title: 'Nivel 3', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
+    LevelData(id: 28, title: 'Nivel 4', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
+    LevelData(id: 29, title: 'Nivel 5', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
   ];
   List<LevelData> get levels => _levels;
 
