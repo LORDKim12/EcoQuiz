@@ -449,3 +449,11 @@ flutter run -d macos
 - La pantalla de "Premios Canjeables" vista desde el perfil del maestro ahora permite cargar grupos y visualizar las recompensas mediante un menú desplegable (`DropdownButton`) específico para cada grupo creado por el maestro.
 
 - También se implementó el selector de grupos en la pantalla de Estadísticas (Progreso).
+
+### 21. Sincronización de Expediciones (Nodos) y Fix de JSON en UI
+**Archivos:** `game_state.dart`, `student_map_screen.dart`
+**Qué se hizo:**
+- **Sincronización Completa de Paradas:** Se modificó `syncFromSupabase()` en `game_state.dart` para descargar los nodos de cada expedición (desde `expedition_stops` filtrado por `level_id`) ordenados por `order_index`.
+- **Progreso Estudiantil (Nodos):** Las estrellas y el estado completado individual de cada parada de expedición se asignan mapeando los datos desde `student_progress` (donde `stop_id != null`).
+- **Limpieza Visual de UI (JSON Fix):** En `student_map_screen.dart`, se detectó que el campo `biome` (devuelto por el legacy polyfill de Supabase) contenía un objeto JSON completo en forma de String. Se implementó la función auxiliar `_safeBiomeName` para decodificar automáticamente `level.biome` y extraer exclusivamente el nombre del mundo (ej. "Manglar").
+- **Recuperación Estética:** Gracias a la decodificación en tiempo real, se eliminó de la interfaz el fallo que causaba que el JSON crudo del nivel se imprimiera encima de la pantalla sobre las etiquetas de los nodos (`_StopInfo`), el cristal superior (glassmorphism title) y el carrusel de expediciones inferior, manteniendo el diseño de la app limpio e inmersivo.

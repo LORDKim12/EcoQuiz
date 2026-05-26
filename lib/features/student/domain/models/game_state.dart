@@ -1,6 +1,8 @@
 
 import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'quiz_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -140,6 +142,7 @@ class LevelData {
       );
 
   LevelData copyWith({
+    int? id,
     bool? isUnlocked,
     String? title,
     String? biome,
@@ -150,7 +153,7 @@ class LevelData {
     List<int>? completedStops,
   }) =>
       LevelData(
-        id: id,
+        id: id ?? this.id,
         title: title ?? this.title,
         biome: biome ?? this.biome,
         isUnlocked: isUnlocked ?? this.isUnlocked,
@@ -278,14 +281,43 @@ class GameState extends ChangeNotifier {
     return 'Guardián de la Naturaleza';
   }
 
+  /// Devuelve la imagen por defecto para un bioma según su nombre.
+  static String _defaultBiomeImage(String biome) {
+    final lower = biome.toLowerCase();
+    if (lower.contains('ciudad')) return 'assets/images/biome_city.png';
+    if (lower.contains('manglar')) return 'assets/images/biome_mangrove.png';
+    if (lower.contains('arrecife') || lower.contains('mar')) return 'assets/images/biome_reef.png';
+    if (lower.contains('bosque')) return 'assets/images/biome_forest.png';
+    if (lower.contains('selva') || lower.contains('jungla')) return 'assets/images/biome_jungle.png';
+    if (lower.contains('desierto')) return 'assets/images/biome_desert.png';
+    if (lower.contains('tundra')) return 'assets/images/biome_tundra.png';
+    return 'assets/images/biome_forest.png';
+  }
+
+  SharedPreferences? _prefs;
+
   Future<void> init() async {
-    // La inicialización local fue removida por diseño.
-    // Todos los datos se cargarán usando syncFromSupabase() 
-    // después de iniciar sesión.
+    _prefs = await SharedPreferences.getInstance();
+
+    // Cargar niveles locales (incluye expediciones y preguntas custom)
+    final String? levelsJson = _prefs?.getString('unlocked_levels');
+    if (levelsJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(levelsJson);
+        _levels = decoded.map((e) => LevelData.fromJson(e)).toList();
+      } catch (e) {
+        debugPrint('Error decoding levels from prefs: $e');
+      }
+    }
+
     notifyListeners();
   }
 
   Future<void> _saveLevels() async {
+    if (_prefs != null) {
+      final jsonList = _levels.map((l) => l.toJson()).toList();
+      await _prefs!.setString('unlocked_levels', jsonEncode(jsonList));
+    }
     notifyListeners();
   }
 
@@ -310,16 +342,19 @@ class GameState extends ChangeNotifier {
   /// Crea una expedición completa con paradas.
   void addExpedition(String title, String? backgroundImagePath, List<ExpeditionStop> stops, {String biome = 'Personalizado'}) {
     final newId = _levels.isEmpty ? 0 : _levels.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
-    _levels.add(LevelData(
+    final level = LevelData(
       id: newId,
       title: title,
       biome: biome,
       isUnlocked: true,
       backgroundImagePath: backgroundImagePath,
       stops: stops,
-    ));
+    );
+    _levels.add(level);
     _saveLevels();
-    _persistLevelToSupabase(title, biome, newId);
+
+    // Persistir en Supabase de forma nativa enviando la expedición completa
+    _persistLevelToSupabase(level);
   }
 
   /// Agrega una parada a una expedición existente.
@@ -363,10 +398,10 @@ class GameState extends ChangeNotifier {
     _saveLevels();
 
     // Persistir en Supabase (fire-and-forget, actualiza ID local luego)
-    _persistLevelToSupabase(title, biome, newId);
+    _persistLevelToSupabase(newList.last);
   }
 
-  Future<void> _persistLevelToSupabase(String title, String biome, int localId) async {
+  Future<void> _persistLevelToSupabase(LevelData level) async {
     try {
       final client = Supabase.instance.client;
       final existing = await client
@@ -377,9 +412,12 @@ class GameState extends ChangeNotifier {
           .maybeSingle();
       final nextOrder = existing != null ? (existing['id'] as int) + 1 : 0;
 
+      // Polyfill: Empacar toda la expedición (incluyendo paradas y preguntas) como JSON en el campo biome
+      final String biomePayload = jsonEncode(level.toJson());
+
       final result = await client.from('levels').insert({
-        'title': title,
-        'biome': biome.toLowerCase(),
+        'title': level.title,
+        'biome': biomePayload,
         'order_index': nextOrder,
         'is_active': true,
       }).select().single();
@@ -387,9 +425,9 @@ class GameState extends ChangeNotifier {
       // Actualizar el ID local con el ID real de Supabase
       final supabaseId = result['id'] as int;
       final newList = List<LevelData>.from(_levels);
-      final idx = newList.indexWhere((l) => l.id == localId && l.title == title && l.biome == biome);
+      final idx = newList.indexWhere((l) => l.id == level.id);
       if (idx >= 0) {
-        newList[idx] = LevelData(id: supabaseId, title: title, biome: biome, isUnlocked: true);
+        newList[idx] = newList[idx].copyWith(id: supabaseId);
         _levels = newList;
         _saveLevels();
       }
@@ -400,18 +438,19 @@ class GameState extends ChangeNotifier {
 
   void addLevelWithQuestions(String title, String? backgroundPath, List<QuizQuestion> questions, {String biome = 'Bosque'}) {
     final newId = _levels.isEmpty ? 0 : _levels.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1;
-    _levels.add(LevelData(
+    final level = LevelData(
       id: newId,
       title: title,
       biome: biome,
       isUnlocked: true,
       questions: questions,
       backgroundPath: backgroundPath,
-    ));
+    );
+    _levels.add(level);
     _saveLevels();
 
     // Persistir en Supabase (fire-and-forget, actualiza ID local luego)
-    _persistLevelToSupabase(title, biome, newId);
+    _persistLevelToSupabase(level);
   }
 
   void addQuestionsToLevel(int levelId, List<QuizQuestion> newQuestions) {
@@ -711,19 +750,7 @@ class GameState extends ChangeNotifier {
     _playerGroup = 'Sin Grupo';
     _purchasedRewards.clear();
 
-    final defaultLevels = [
-      LevelData(id: 0, title: 'Nivel 1', biome: 'Ciudad', isUnlocked: true, backgroundImagePath: 'assets/images/biome_city.png'),
-      LevelData(id: 1, title: 'Nivel 1', biome: 'Manglar', isUnlocked: false, backgroundImagePath: 'assets/images/biome_mangrove.png'),
-      LevelData(id: 2, title: 'Nivel 1', biome: 'Arrecife', isUnlocked: false, backgroundImagePath: 'assets/images/biome_reef.png'),
-      LevelData(id: 3, title: 'Nivel 1', biome: 'Bosque', isUnlocked: false, backgroundImagePath: 'assets/images/biome_forest.png'),
-      LevelData(id: 4, title: 'Nivel 1', biome: 'Selva', isUnlocked: false, backgroundImagePath: 'assets/images/biome_jungle.png'),
-      LevelData(id: 5, title: 'Nivel 1', biome: 'Desierto', isUnlocked: false, backgroundImagePath: 'assets/images/biome_desert.png'),
-    ];
-    final customLevels = _levels
-        .where((l) => l.id > 5)
-        .map((l) => l.copyWith(isUnlocked: false, completedStops: []))
-        .toList();
-    _levels = [...defaultLevels, ...customLevels];
+    _levels = [];
     await _saveLevels();
     notifyListeners();
   }
@@ -736,6 +763,13 @@ class GameState extends ChangeNotifier {
     _studentId = studentId;
     final client = Supabase.instance.client;
 
+    // Guardar referencia a las expediciones locales (con stops, preguntas, etc.)
+    // para preservar datos del maestro que no están en Supabase.
+    final localLevelsMap = <int, LevelData>{};
+    for (final l in _levels) {
+      localLevelsMap[l.id] = l;
+    }
+
     try {
       // 1. Cargar niveles desde Supabase
       final levelsResult = await client
@@ -744,57 +778,81 @@ class GameState extends ChangeNotifier {
           .eq('is_active', true)
           .order('order_index');
 
+      // Obtener progreso para saber cuáles desbloquear
+      final progressResult = await client
+          .from('student_progress')
+          .select('level_id, stars_earned')
+          .eq('student_id', studentId);
+
+      final progressMap = <String, int>{};
+      for (final row in progressResult) {
+        progressMap[row['level_id'].toString()] = row['stars_earned'] as int;
+      }
+
       if (levelsResult.isNotEmpty) {
-        // Obtener progreso para saber cuáles desbloquear
-        final progressResult = await client
-            .from('student_progress')
-            .select('level_id, stars_earned')
-            .eq('student_id', studentId);
-
-        final progressMap = <String, int>{};
-        for (final row in progressResult) {
-          progressMap[row['level_id'].toString()] = row['stars_earned'] as int;
-        }
-
         final syncedLevels = <LevelData>[];
+        int unlockedCount = 0;
+
         for (final json in levelsResult) {
           final id = json['id'] as int;
-          final title = json['title'] as String? ?? 'Nivel $id';
-          final biome = json['biome'] as String? ?? title;
-          // El nivel 0 siempre desbloqueado; los demás si completaste el anterior
-          final isUnlocked = id == 0 ||
+          
+          // Desbloquear si es el primero (unlockedCount == 0) o si completó el anterior
+          final isUnlocked = unlockedCount == 0 ||
               (progressMap.containsKey((id - 1).toString()) &&
                (progressMap[(id - 1).toString()] ?? 0) > 0);
-          syncedLevels.add(LevelData(id: id, title: title, biome: biome, isUnlocked: isUnlocked));
+          
+          if (isUnlocked) unlockedCount++;
+
+          final rawBiome = json['biome'] as String?;
+          final title = json['title'] as String? ?? 'Nivel $id';
+          final biome = rawBiome ?? title;
+
+          // Consultar expedition_stops filtrando por level_id y ordenado por order_index
+          final stopsResult = await client
+              .from('expedition_stops')
+              .select()
+              .eq('level_id', id)
+              .order('order_index');
+
+          final stops = stopsResult.map((s) => ExpeditionStop(
+                id: s['id'] as int,
+                title: s['title'] as String,
+              )).toList();
+
+          // Consultar student_progress para obtener paradas completadas (stop_id != null)
+          final completedStopsResult = await client
+              .from('student_progress')
+              .select('stop_id')
+              .eq('student_id', studentId)
+              .eq('level_id', id)
+              .not('stop_id', 'is', null);
+
+          final completedStops = completedStopsResult
+              .map((p) => p['stop_id'] as int)
+              .toList();
+
+          final local = localLevelsMap[id];
+          syncedLevels.add(LevelData(
+            id: id,
+            title: title,
+            biome: biome,
+            isUnlocked: isUnlocked,
+            questions: local?.questions ?? [],
+            backgroundPath: local?.backgroundPath,
+            backgroundImagePath: local?.backgroundImagePath ?? _defaultBiomeImage(biome),
+            stops: stops,
+            completedStops: completedStops,
+          ));
         }
 
         _levels = syncedLevels;
         _saveLevels();
-
-        // Actualizar estrellas
         _levelStars = progressMap;
       } else {
-        // Fallback a los 6 biomas/niveles por defecto si no hay en la nube
-        final progressResult = await client
-            .from('student_progress')
-            .select('level_id, stars_earned')
-            .eq('student_id', studentId);
-
-        final progressMap = <String, int>{};
-        for (final row in progressResult) {
-          progressMap[row['level_id'].toString()] = row['stars_earned'] as int;
-        }
-        
-        _levels = [
-          LevelData(id: 0, title: 'Nivel 1', biome: 'Ciudad', isUnlocked: true),
-          LevelData(id: 1, title: 'Nivel 1', biome: 'Manglar', isUnlocked: progressMap.containsKey('0') && progressMap['0']! > 0),
-          LevelData(id: 2, title: 'Nivel 1', biome: 'Arrecife', isUnlocked: progressMap.containsKey('1') && progressMap['1']! > 0),
-          LevelData(id: 3, title: 'Nivel 1', biome: 'Bosque', isUnlocked: progressMap.containsKey('2') && progressMap['2']! > 0),
-          LevelData(id: 4, title: 'Nivel 1', biome: 'Selva', isUnlocked: progressMap.containsKey('3') && progressMap['3']! > 0),
-          LevelData(id: 5, title: 'Nivel 1', biome: 'Desierto', isUnlocked: progressMap.containsKey('4') && progressMap['4']! > 0),
-        ];
-        _levelStars = progressMap;
+        // La base de datos está vacía, no agregamos niveles predeterminados.
+        _levels = [];
         _saveLevels();
+        _levelStars = progressMap;
       }
 
       // 2. Cargar recompensas del grupo del alumno

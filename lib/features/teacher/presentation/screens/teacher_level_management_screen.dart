@@ -175,12 +175,21 @@ class _TeacherLevelManagementScreenState
             ),
           );
         } else {
-          // Expediciones custom → ir al editor de preguntas
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TeacherQuestionManagementScreen(
-                  initialLevelId: level.id),
+          // Expediciones custom → Mostrar mensaje temporal
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('La edición de expediciones se añadirá próximamente. Para agregar otra, crea una nueva.'),
+                  ),
+                ],
+              ),
+              backgroundColor: AppColors.teacherPrimary,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           );
         }

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import 'package:provider/provider.dart';
@@ -19,6 +20,16 @@ class StudentMapScreen extends StatefulWidget {
 class _StudentMapScreenState extends State<StudentMapScreen> {
   int _currentExpeditionIndex = 0;
   final PageController _expeditionPageController = PageController();
+
+  String _safeBiomeName(String raw) {
+    if (raw.trim().startsWith('{')) {
+      try {
+        final map = jsonDecode(raw);
+        return map['biome']?.toString() ?? 'Bioma';
+      } catch (_) {}
+    }
+    return raw;
+  }
 
   String _getBiomeImage(String biome) {
     final lower = biome.toLowerCase();
@@ -95,8 +106,9 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildExpeditionMap(
       BuildContext context, LevelData level, GameState gameState) {
+    final safeBiome = _safeBiomeName(level.biome);
     final biomeImage =
-        level.backgroundImagePath ?? _getBiomeImage(level.biome);
+        level.backgroundImagePath ?? _getBiomeImage(safeBiome);
 
     // Determine stops: if level has explicit stops, use them; otherwise treat as single stop
     final int stopCount;
@@ -136,7 +148,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
       stops = [
         _StopInfo(
           index: 0,
-          title: level.biome,
+          title: safeBiome,
           status: isCompleted
               ? _StopStatus.completed
               : (level.isUnlocked && (isCurrent || stars == 0))
@@ -156,10 +168,9 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
     // Generate node positions along a sinusoidal curve
     final positions = _generateCurvePositions(stopCount, screenWidth, mapHeight);
 
-    return InteractiveViewer(
-      minScale: 0.6,
-      maxScale: 2.0,
-      boundaryMargin: const EdgeInsets.all(100),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      reverse: true, // Empezar desde abajo (donde inicia el camino)
       child: SizedBox(
         width: screenWidth,
         height: mapHeight,
@@ -199,7 +210,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
 
             // Expedition title (glassmorphism)
             Positioned(
-              top: 100,
+              bottom: 120, // Título abajo para que se vea al cargar el mapa invertido
               left: 0,
               right: 0,
               child: Center(
@@ -224,7 +235,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
-                              level.biome.toUpperCase(),
+                              safeBiome.toUpperCase(),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -491,7 +502,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          level.biome,
+                          _safeBiomeName(level.biome),
                           style: TextStyle(
                             color: isActive
                                 ? Colors.white
