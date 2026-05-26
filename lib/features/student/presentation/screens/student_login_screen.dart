@@ -103,32 +103,65 @@ class _StudentLoginScreenState extends ConsumerState<StudentLoginScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  // Axolotl Image holding sign
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      'assets/images/axolotl_wooden_sign.png',
-                      height: 180,
-                      width: double.infinity,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 180,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2B3A4A),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'Ajolote con Letrero\n(Imagen)',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white70),
+                  // Axolotl mascot
+                  Column(
+                    children: [
+                      Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF27AE60).withValues(alpha: 0.35),
+                              blurRadius: 20,
+                              spreadRadius: 6,
                             ),
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/eco_ajolote_mascot.png',
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: AppColors.studentPrimary,
+                                child: const Icon(Icons.pets, size: 50, color: Colors.white),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '¡Bienvenido, explorador!',
+                          style: TextStyle(
+                            color: const Color(0xFF0D7A25),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 32),
                   // Login Form Card

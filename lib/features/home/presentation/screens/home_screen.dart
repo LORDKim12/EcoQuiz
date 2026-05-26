@@ -98,30 +98,36 @@ class HomeScreen extends StatelessWidget {
               
               const SizedBox(height: 32),
               // Ajolote mascot image
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  'assets/images/eco_ajolote.png',
-                  height: 180,
-                  width: 180,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 150,
-                      width: 150,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'Eco el Ajolote\n(Falta imagen)',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.black54),
-                        ),
-                      ),
-                    );
-                  },
+              Container(
+                width: 160,
+                height: 160,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF27AE60).withValues(alpha: 0.3),
+                      blurRadius: 24,
+                      spreadRadius: 6,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/eco_ajolote_mascot.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppColors.studentPrimary,
+                        child: const Icon(Icons.pets, size: 60, color: Colors.white),
+                      );
+                    },
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
