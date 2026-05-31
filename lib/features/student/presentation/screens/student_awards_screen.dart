@@ -305,6 +305,8 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
           colorValue: colorInt,
           iconCodePoint: _getIconCodePoint(r.iconName),
         );
+        // Cache the resolved icon for this reward
+        _iconCache[r.iconName] = _getIcon(r.iconName);
 
         return _buildRewardCard(
           context,
@@ -322,6 +324,9 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
     return int.tryParse(hex, radix: 16) ?? 0xFF000000;
   }
 
+  // Map of icon names to their constant IconData references
+  final Map<String, IconData> _iconCache = {};
+
   int _getIconCodePoint(String iconName) {
     switch (iconName) {
       case 'star': return Icons.star.codePoint;
@@ -333,6 +338,35 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
       case 'crop_square': return Icons.crop_square.codePoint;
       default: return Icons.card_giftcard.codePoint;
     }
+  }
+
+  IconData _getIcon(String iconName) {
+    switch (iconName) {
+      case 'star': return Icons.star;
+      case 'videogame_asset': return Icons.videogame_asset;
+      case 'color_lens': return Icons.color_lens;
+      case 'face': return Icons.face;
+      case 'lightbulb': return Icons.lightbulb;
+      case 'wallpaper': return Icons.wallpaper;
+      case 'crop_square': return Icons.crop_square;
+      default: return Icons.card_giftcard;
+    }
+  }
+
+  IconData _getIconFromCodePoint(int codePoint) {
+    // Check cache first
+    for (final entry in _iconCache.entries) {
+      if (entry.value.codePoint == codePoint) return entry.value;
+    }
+    // Fallback: match against known constant icons
+    if (codePoint == Icons.star.codePoint) return Icons.star;
+    if (codePoint == Icons.videogame_asset.codePoint) return Icons.videogame_asset;
+    if (codePoint == Icons.color_lens.codePoint) return Icons.color_lens;
+    if (codePoint == Icons.face.codePoint) return Icons.face;
+    if (codePoint == Icons.lightbulb.codePoint) return Icons.lightbulb;
+    if (codePoint == Icons.wallpaper.codePoint) return Icons.wallpaper;
+    if (codePoint == Icons.crop_square.codePoint) return Icons.crop_square;
+    return Icons.card_giftcard;
   }
 
   Widget _buildEmptyRewards() {
@@ -370,7 +404,7 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
     required bool isPurchased,
   }) {
     final color = Color(reward.colorValue);
-    final icon = IconData(reward.iconCodePoint, fontFamily: 'MaterialIcons');
+    final icon = _getIconFromCodePoint(reward.iconCodePoint);
 
     return Container(
       decoration: BoxDecoration(
@@ -540,7 +574,7 @@ class _StudentAwardsScreenState extends ConsumerState<StudentAwardsScreen> {
               ),
               child: Center(
                 child: Icon(
-                  IconData(reward.iconCodePoint, fontFamily: 'MaterialIcons'),
+                  _getIconFromCodePoint(reward.iconCodePoint),
                   size: 36,
                   color: Color(reward.colorValue),
                 ),
